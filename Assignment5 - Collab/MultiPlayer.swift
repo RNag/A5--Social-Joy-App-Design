@@ -9,8 +9,8 @@
 import UIKit
 import MultipeerConnectivity
 
-class ViewController: UIViewController, MCBrowserViewControllerDelegate, MCSessionDelegate {
-
+class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionDelegate {
+    
     var session: MCSession!
     var peerID: MCPeerID!
     
@@ -18,8 +18,7 @@ class ViewController: UIViewController, MCBrowserViewControllerDelegate, MCSessi
     var assistant: MCAdvertiserAssistant!
     
     
-    @IBOutlet weak var chatWindow: UITextView!
-    @IBOutlet weak var messageTF: UITextField!
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -37,37 +36,8 @@ class ViewController: UIViewController, MCBrowserViewControllerDelegate, MCSessi
         
     }
     
-    @IBAction func sendMessage(_ sender: UIButton) {
-        
-        let msg = messageTF.text
-        let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: msg!)
-        
-        do{
-            try session.send(dataToSend, toPeers: session.connectedPeers, with: .unreliable)
-        }
-        catch let err {
-            //print("Error in sending data \(err)")
-        }
-        
-        updateChatView(newText: msg!, id: peerID)
-        
-    }
     
-    func updateChatView(newText: String, id: MCPeerID){
-        
-        let currentText = chatWindow.text
-        var addThisText = ""
-        
-        if(id == peerID){
-            addThisText = "Me: " + newText + "\n"
-        }
-        else
-        {
-            addThisText = "\(id.displayName): \(newText)\n"
-        }
-        chatWindow.text = currentText! + addThisText
-        
-    }
+    
     
     @IBAction func connect(_ sender: UIButton) {
         
@@ -87,7 +57,7 @@ class ViewController: UIViewController, MCBrowserViewControllerDelegate, MCSessi
         // Called when the browser view controller is cancelled
         dismiss(animated: true, completion: nil)
     }
-     //**********************************************************
+    //**********************************************************
     
     
     
@@ -103,10 +73,10 @@ class ViewController: UIViewController, MCBrowserViewControllerDelegate, MCSessi
         // this needs to be run on the main thread
         DispatchQueue.main.async(execute: {
             
-        if let receivedString = NSKeyedUnarchiver.unarchiveObject(with: data) as? String{
-            self.updateChatView(newText: receivedString, id: peerID)
-        }
-        
+            //if let receivedString = NSKeyedUnarchiver.unarchiveObject(with: data) as? String{
+            // self.updateChatView(newText: receivedString, id: peerID)
+            //}
+            
         })
     }
     
@@ -135,14 +105,14 @@ class ViewController: UIViewController, MCBrowserViewControllerDelegate, MCSessi
         
     }
     //**********************************************************
-
     
-
+    
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-
-
+    
+    
 }
 

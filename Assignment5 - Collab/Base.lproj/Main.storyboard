@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="12118" systemVersion="16E195" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="vud-qo-2fa">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="11762" systemVersion="16D32" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="vud-qo-2fa">
     <device id="ipad9_7" orientation="portrait">
         <adaptation id="fullscreen"/>
     </device>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="12086"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="11757"/>
         <capability name="Alignment constraints with different attributes" minToolsVersion="5.1"/>
         <capability name="Constraints with non-1.0 multipliers" minToolsVersion="5.1"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -14,7 +14,7 @@
         <!--View Controller-->
         <scene sceneID="tne-QT-ifu">
             <objects>
-                <viewController id="BYZ-38-t0r" customClass="ViewController" customModule="MultipeerExample" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="BYZ-38-t0r" customClass="ViewController" customModule="Assignment5___Collab" customModuleProvider="target" sceneMemberID="viewController">
                     <layoutGuides>
                         <viewControllerLayoutGuide type="top" id="y3c-jy-aDJ"/>
                         <viewControllerLayoutGuide type="bottom" id="wfy-db-euE"/>
@@ -86,7 +86,7 @@
         <!--Home Screen-->
         <scene sceneID="8pk-Wo-DcP">
             <objects>
-                <viewController id="8on-We-C1w" customClass="HomeScreen" customModule="MultipeerExample" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="8on-We-C1w" customClass="HomeScreen" customModule="Assignment5___Collab" customModuleProvider="target" sceneMemberID="viewController">
                     <layoutGuides>
                         <viewControllerLayoutGuide type="top" id="erv-DW-VBc"/>
                         <viewControllerLayoutGuide type="bottom" id="hee-G1-0m9"/>
@@ -167,6 +167,7 @@
                     <navigationItem key="navigationItem" id="mPP-dY-kmM"/>
                     <connections>
                         <outlet property="gamePlayMode" destination="kim-df-L13" id="zUm-AV-L0Q"/>
+                        <segue destination="cwg-VY-Quz" kind="show" identifier="GoToMulti" id="0tV-sQ-fOM"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="zoS-Mh-SJ0" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -176,7 +177,7 @@
         <!--Quiz Screen-->
         <scene sceneID="H2H-ac-Pq7">
             <objects>
-                <viewController id="p7w-et-nrR" customClass="QuizScreen" customModule="MultipeerExample" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="p7w-et-nrR" customClass="QuizScreen" customModule="Assignment5___Collab" customModuleProvider="target" sceneMemberID="viewController">
                     <layoutGuides>
                         <viewControllerLayoutGuide type="top" id="N8A-M0-DSy"/>
                         <viewControllerLayoutGuide type="bottom" id="sI7-xk-fjZ"/>
@@ -417,7 +418,7 @@
                                             <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="30"/>
                                         </variation>
                                     </label>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Question Sentence" lineBreakMode="wordWrap" baselineAdjustment="alignBaselines" minimumScaleFactor="0.10000000000000001" adjustsFontForContentSizeCategory="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ply-9k-YFi">
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Question Sentence" lineBreakMode="wordWrap" baselineAdjustment="alignBaselines" minimumScaleFactor="0.10000000000000001" translatesAutoresizingMaskIntoConstraints="NO" id="ply-9k-YFi">
                                         <rect key="frame" x="0.0" y="77" width="614" height="77"/>
                                         <color key="backgroundColor" red="1" green="0.59999999999999998" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="17"/>
@@ -595,7 +596,25 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="jr3-6j-wXm" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="137.5" y="138.8671875"/>
+            <point key="canvasLocation" x="140" y="137"/>
+        </scene>
+        <!--Multiplayer-->
+        <scene sceneID="k18-oV-Cte">
+            <objects>
+                <viewController storyboardIdentifier="Multiplayer" id="cwg-VY-Quz" customClass="Multiplayer" customModule="Assignment5___Collab" customModuleProvider="target" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="IGn-Go-dqC"/>
+                        <viewControllerLayoutGuide type="bottom" id="o15-Pi-wdZ"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="ASb-Sd-CkB">
+                        <rect key="frame" x="0.0" y="0.0" width="768" height="1024"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="zg6-ij-VAd" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="866" y="125"/>
         </scene>
     </scenes>
     <resources>
