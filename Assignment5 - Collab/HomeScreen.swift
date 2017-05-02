@@ -143,7 +143,8 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         
         if segue.identifier == "GoToMulti"
         {
-            let _ = segue.destination as! Multiplayer
+            let multi = segue.destination as! Multiplayer
+            multi.session = session
         }
     }
     

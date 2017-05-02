@@ -252,7 +252,7 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         
         
         self.peerID = MCPeerID(displayName: UIDevice.current.name)
-        self.session = MCSession(peer: peerID)
+       // self.session = MCSession(peer: peerID)
         self.browser = MCBrowserViewController(serviceType: "chat", session: session)
         self.assistant = MCAdvertiserAssistant(serviceType: "chat", discoveryInfo: nil, session: session)
         
