@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		07B8D5141EB8E781007CC069 /* manager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B8D5131EB8E781007CC069 /* manager.swift */; };
 		42498E101EAC2272009A0BD3 /* HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42498E0F1EAC2272009A0BD3 /* HomeScreen.swift */; };
 		42498E121EAC27DC009A0BD3 /* QuizScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42498E111EAC27DC009A0BD3 /* QuizScreen.swift */; };
 		968BC71E1E95E5D70093431D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 968BC71D1E95E5D70093431D /* AppDelegate.swift */; };
@@ -17,6 +18,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		07B8D5131EB8E781007CC069 /* manager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = manager.swift; path = ../manager.swift; sourceTree = "<group>"; };
 		42498E0F1EAC2272009A0BD3 /* HomeScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
 		42498E111EAC27DC009A0BD3 /* QuizScreen.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = QuizScreen.swift; sourceTree = "<group>"; };
 		968BC71A1E95E5D70093431D /* Assignment5 - Collab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Assignment5 - Collab.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -63,6 +65,7 @@
 				968BC7211E95E5D70093431D /* Main.storyboard */,
 				42498E0F1EAC2272009A0BD3 /* HomeScreen.swift */,
 				42498E111EAC27DC009A0BD3 /* QuizScreen.swift */,
+				07B8D5131EB8E781007CC069 /* manager.swift */,
 				968BC7241E95E5D70093431D /* Assets.xcassets */,
 				968BC7261E95E5D70093431D /* LaunchScreen.storyboard */,
 				968BC7291E95E5D70093431D /* Info.plist */,
@@ -144,6 +147,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				42498E121EAC27DC009A0BD3 /* QuizScreen.swift in Sources */,
+				07B8D5141EB8E781007CC069 /* manager.swift in Sources */,
 				968BC7201E95E5D70093431D /* MultiPlayer.swift in Sources */,
 				968BC71E1E95E5D70093431D /* AppDelegate.swift in Sources */,
 				42498E101EAC2272009A0BD3 /* HomeScreen.swift in Sources */,

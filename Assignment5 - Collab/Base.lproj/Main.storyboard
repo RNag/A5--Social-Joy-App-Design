@@ -852,7 +852,7 @@
                                             <fontDescription key="fontDescription" type="system" pointSize="26"/>
                                         </variation>
                                     </label>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="oPL-vR-gGY">
+                                    <button opaque="NO" tag="3" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="oPL-vR-gGY">
                                         <rect key="frame" x="-0.33333333333334281" y="180" width="150" height="41.333333333333314"/>
                                         <color key="backgroundColor" name="gridColor" catalog="System" colorSpace="catalog"/>
                                         <fontDescription key="fontDescription" name=".AppleSystemUIFont" family=".AppleSystemUIFont" pointSize="15"/>
@@ -862,8 +862,11 @@
                                         <variation key="widthClass=regular">
                                             <fontDescription key="fontDescription" name=".AppleSystemUIFont" family=".AppleSystemUIFont" pointSize="24"/>
                                         </variation>
+                                        <connections>
+                                            <action selector="selectOption:" destination="M0E-UW-ciw" eventType="touchUpInside" id="Kkj-De-MAP"/>
+                                        </connections>
                                     </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="gTN-gC-YaQ">
+                                    <button opaque="NO" tag="1" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="gTN-gC-YaQ">
                                         <rect key="frame" x="0.0" y="122.66666666666663" width="149.66666666666666" height="41.333333333333371"/>
                                         <color key="backgroundColor" name="gridColor" catalog="System" colorSpace="catalog"/>
                                         <fontDescription key="fontDescription" name=".AppleSystemUIFont" family=".AppleSystemUIFont" pointSize="15"/>
@@ -873,8 +876,11 @@
                                         <variation key="widthClass=regular">
                                             <fontDescription key="fontDescription" name=".AppleSystemUIFont" family=".AppleSystemUIFont" pointSize="24"/>
                                         </variation>
+                                        <connections>
+                                            <action selector="selectOption:" destination="M0E-UW-ciw" eventType="touchUpInside" id="j4w-ub-awb"/>
+                                        </connections>
                                     </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="azJ-8b-wGc">
+                                    <button opaque="NO" tag="4" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="azJ-8b-wGc">
                                         <rect key="frame" x="181.66666666666666" y="180" width="149.66666666666671" height="41.333333333333314"/>
                                         <color key="backgroundColor" name="gridColor" catalog="System" colorSpace="catalog"/>
                                         <fontDescription key="fontDescription" name=".AppleSystemUIFont" family=".AppleSystemUIFont" pointSize="15"/>
@@ -884,8 +890,11 @@
                                         <variation key="widthClass=regular">
                                             <fontDescription key="fontDescription" name=".AppleSystemUIFont" family=".AppleSystemUIFont" pointSize="24"/>
                                         </variation>
+                                        <connections>
+                                            <action selector="selectOption:" destination="M0E-UW-ciw" eventType="touchUpInside" id="KrS-sw-GIc"/>
+                                        </connections>
                                     </button>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="vIx-iR-JS8">
+                                    <button opaque="NO" tag="2" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="vIx-iR-JS8">
                                         <rect key="frame" x="181.66666666666666" y="122.66666666666663" width="149.66666666666671" height="41.333333333333371"/>
                                         <color key="backgroundColor" name="gridColor" catalog="System" colorSpace="catalog"/>
                                         <fontDescription key="fontDescription" name=".AppleSystemUIFont" family=".AppleSystemUIFont" pointSize="15"/>
@@ -895,6 +904,9 @@
                                         <variation key="widthClass=regular">
                                             <fontDescription key="fontDescription" name=".AppleSystemUIFont" family=".AppleSystemUIFont" pointSize="24"/>
                                         </variation>
+                                        <connections>
+                                            <action selector="selectOption:" destination="M0E-UW-ciw" eventType="touchUpInside" id="ak9-Ui-kcv"/>
+                                        </connections>
                                     </button>
                                 </subviews>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
@@ -945,6 +957,9 @@
                                         <variation key="widthClass=regular">
                                             <fontDescription key="fontDescription" type="system" weight="thin" pointSize="24"/>
                                         </variation>
+                                        <connections>
+                                            <action selector="restartQuiz:" destination="M0E-UW-ciw" eventType="touchUpInside" id="ZNe-Wt-AIW"/>
+                                        </connections>
                                     </button>
                                 </subviews>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>

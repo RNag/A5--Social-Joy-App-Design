@@ -9,9 +9,14 @@
 import UIKit
 import MultipeerConnectivity
 
+var mpc = MCPeerManager()
+
 class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionDelegate {
     
+    
+    
     var session: MCSession!
+    
     var peerID: MCPeerID!
     
     var browser: MCBrowserViewController!
@@ -61,7 +66,11 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     var timeInSeconds : Int = 0
     var scores = Array(repeating: 0, count: 4)
     var tappedCount = Array(repeating: 0, count: 4)
-    var numberOfPlayers = 1
+    var numberOfPlayers = 4
+    let choices = ["A", "B", "C", "D"]
+    
+    var players:[(name: String, id: Int)] = []
+
     
     var quiz = quizProperties()
     
@@ -206,8 +215,8 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
             case 2:
                 choice3.setTitle(quiz.choices[i] + ") " + quiz.questions[quiz.qIndex].choices[quiz.choices[i]]! , for: .normal)
 
-            case 4:
-                choice1.setTitle(quiz.choices[i] + ") " + quiz.questions[quiz.qIndex].choices[quiz.choices[i]]! , for: .normal)
+            case 3:
+                choice4.setTitle(quiz.choices[i] + ") " + quiz.questions[quiz.qIndex].choices[quiz.choices[i]]! , for: .normal)
 
             default:
                 choice1.setTitle(quiz.choices[i] + ")???? " + quiz.questions[quiz.qIndex].choices[quiz.choices[i]]! , for: .normal)
@@ -215,6 +224,15 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
             
         }
         
+    }
+    
+    func givePeerID() -> ()
+    {
+        for i in 0..<session.connectedPeers.count
+        {
+            players.append((name: session.connectedPeers[i].displayName, id: i))
+            print("Name: \(session.connectedPeers[i].displayName), id: \(i)")
+        }
     }
     
     
@@ -250,9 +268,123 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         choice3.layer.masksToBounds = true
         choice4.layer.cornerRadius = 15
         choice4.layer.masksToBounds = true
+        
+        givePeerID()
+        
+        print("Session count: \(session.connectedPeers.count)")
 
         
     }
+    
+    
+    @IBAction func selectOption(_ sender: UIButton) {
+        
+        if (sender.tag == 1)
+        {
+            tappedCount[0] += 1
+            
+            choice1.isSelected = false
+            choice2.isSelected = false
+            choice3.isSelected = false
+            choice4.isSelected = false
+            
+            switch tappedCount[0] {
+            case 1:
+                choice1.backgroundColor = selectColor
+                choice2.backgroundColor = defaultColor
+                choice3.backgroundColor = defaultColor
+                choice4.backgroundColor = defaultColor
+                
+            case 2:
+                
+                shouldSubmit(1)
+                
+            default: break
+            }
+
+        }
+        else if sender.tag == 2
+        {
+            tappedCount[1] += 1
+            
+            choice1.isSelected = false
+            choice2.isSelected = false
+            choice3.isSelected = false
+            choice4.isSelected = false
+            
+            switch tappedCount[1] {
+            case 1:
+                choice2.backgroundColor = selectColor
+                choice1.backgroundColor = defaultColor
+                choice3.backgroundColor = defaultColor
+                choice4.backgroundColor = defaultColor
+                
+            case 2:
+                
+                shouldSubmit(2)
+                
+            default: break
+            }
+
+        }
+        else if sender.tag == 3
+        {
+            tappedCount[2] += 1
+            
+            choice1.isSelected = false
+            choice2.isSelected = false
+            choice3.isSelected = false
+            choice4.isSelected = false
+            
+            switch tappedCount[2] {
+            case 1:
+                choice3.backgroundColor = selectColor
+                choice2.backgroundColor = defaultColor
+                choice1.backgroundColor = defaultColor
+                choice4.backgroundColor = defaultColor
+                
+            case 2:
+                
+                shouldSubmit(3)
+                
+            default: break
+            }
+
+        }
+        else if sender.tag == 4
+        {
+            tappedCount[3] += 1
+            
+            choice1.isSelected = false
+            choice2.isSelected = false
+            choice3.isSelected = false
+            choice4.isSelected = false
+            
+            switch tappedCount[3] {
+            case 1:
+                choice4.backgroundColor = selectColor
+                choice2.backgroundColor = defaultColor
+                choice3.backgroundColor = defaultColor
+                choice1.backgroundColor = defaultColor
+                
+            case 2:
+                
+                shouldSubmit(4)
+                
+            default: break
+            }
+
+        }
+        else
+        {
+            print("Error")
+        }
+        
+       
+        
+    }
+    
+    
     
     func timeUp(_ selectIndex : Int) {
         
@@ -271,6 +403,69 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         revealAnswer()
     }
     
+    func shouldSubmit(_ selectIndex : Int) {
+        
+        let letter = choices[selectIndex - 1]
+        
+        timer.invalidate()
+        
+        
+        switch selectIndex
+        {
+        case 1:
+            choice1.backgroundColor = submitColor
+        case 2:
+            choice2.backgroundColor = submitColor
+        case 3:
+            choice3.backgroundColor = submitColor
+        case 4:
+            choice4.backgroundColor = submitColor
+        default:
+            print("Error in submitted answer")
+        }
+        
+        
+        // NOTE: this will only set player 1's speech overhead.
+        // Need to loop through all players inside this func
+        ans1.text = String(letter)
+        
+        choice1.isUserInteractionEnabled = false
+        choice2.isUserInteractionEnabled = false
+        choice3.isUserInteractionEnabled = false
+        choice4.isUserInteractionEnabled = false
+        
+        if (String(letter) == quiz.questions[quiz.qIndex].answer) {
+            countdown.text = "Nice Job!"
+            
+            // Determine which player was correct ?
+            scores[0] += 1
+            
+            //for i in 0 ..< maxPlayers {
+                //score1.text = "\(scores[1])"
+                score1.text = "\(scores[0])"
+            //}
+        }
+        else {
+            countdown.text = "Incorrect!"
+        }
+        
+        revealAnswer()
+    }
+
+    
+    @IBAction func restartQuiz(_ sender: Any) {
+        
+        startover.isHidden = true
+        quiz.number += 1
+        
+        for i in 0 ..< maxPlayers {
+            scores[i] = 0
+        }
+        
+        DispatchQueue.main.async(){
+            self.searchQuizData(quizNumber: self.quiz.number)
+        }
+    }
     
     
     func revealAnswer()
@@ -289,7 +484,7 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         default:
             choice1.backgroundColor = selectColor
         }
-        choice1.backgroundColor = revealColor
+        
         
         let when = DispatchTime.now() + 3
         

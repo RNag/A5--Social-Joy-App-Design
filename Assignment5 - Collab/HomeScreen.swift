@@ -9,6 +9,8 @@
 import UIKit
 import MultipeerConnectivity
 
+
+
 class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionDelegate {
     
     enum playerModes : Int {
@@ -151,6 +153,7 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     func browserViewControllerDidFinish(_ browserViewController: MCBrowserViewController) {
         // Called when the browser view controller is dismissed
         dismiss(animated: true, completion: nil)
+         print("Session count: \(session.connectedPeers.count)")
     }
     
     func browserViewControllerWasCancelled(_ browserViewController: MCBrowserViewController) {
