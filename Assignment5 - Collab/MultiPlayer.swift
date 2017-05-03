@@ -70,7 +70,11 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     let choices = ["A", "B", "C", "D"]
     var gameplayers = Array(repeating: (name: "", id: 0), count: 4)
     
+    var num : String = ""
+    
+    
     var myplayer = (name: "", score: 0, Ans: "")
+    var answers = Array(repeating: "", count: 3)
     
     
 
@@ -467,9 +471,21 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         catch let err {
             print("Error in sending data \(err)")
         }
-
         
-        revealAnswer()
+        var count = 0
+        
+        for i in 0..<answers.count
+        {
+            if answers[i] != ""
+            {
+                count += 1
+            }
+        }
+        
+        if count == session.connectedPeers.count && (ans1.text != "")
+        {
+            revealAnswer()
+        }
     }
 
     
@@ -507,6 +523,25 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         
         
         let when = DispatchTime.now() + 3
+        
+        for i in 0..<session.connectedPeers.count
+        {
+            switch i
+            {
+             case 0:
+                self.score2.text = "\(self.scores[1])"
+                self.ans2.text = self.answers[0]
+            case 1:
+                self.score3.text = "\(self.scores[2])"
+                self.ans3.text = self.answers[1]
+            case 2:
+                self.score4.text = "\(self.scores[3])"
+                self.ans4.text = self.answers[2]
+            default:
+                print("Error in Revealing Peer Answer & score")
+            }
+        }
+            
         
         quiz.qIndex += 1
         
@@ -605,24 +640,33 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
             
             if receivedPlayer?["name"] == self.gameplayers[1].name
             {
-                let num : String = receivedPlayer!["score"]!
+                 self.num = receivedPlayer!["score"]!
+                 self.answers[0] = receivedPlayer!["ans"]!
                 
-                self.scores[1] = Int(num)!
-                print("Player: \(receivedPlayer!["name"]), Score: \(receivedPlayer?["score"])")
+                self.scores[1] = Int(self.num)!
+                //self.score2.text = "\(self.scores[1])"
+                //self.ans2.text = self.answer
+                print("Player: \(receivedPlayer!["name"]), Score: \(receivedPlayer?["score"]), Ans: \(receivedPlayer?["ans"])")
             }
             else if receivedPlayer?["name"] == self.gameplayers[2].name
             {
-                let num : String = receivedPlayer!["score"]!
+                self.num = receivedPlayer!["score"]!
+                self.answers[1] = receivedPlayer!["ans"]!
                 
-                self.scores[2] = Int(num)!
-                print("Player: \(receivedPlayer!["name"]), Score: \(receivedPlayer?["score"])")
+                self.scores[2] = Int(self.num)!
+                //self.score3.text = "\(self.scores[2])"
+                //self.ans3.text = self.answer
+                print("Player: \(receivedPlayer!["name"]), Score: \(receivedPlayer?["score"]), Ans: \(receivedPlayer?["ans"])")
             }
             else if receivedPlayer?["name"] == self.gameplayers[3].name
             {
-                let num : String = receivedPlayer!["score"]!
+                self.num = receivedPlayer!["score"]!
+                self.answers[2] = receivedPlayer!["ans"]!
                 
-                self.scores[3] = Int(num)!
-                print("Player: \(receivedPlayer!["name"]), Score: \(receivedPlayer?["score"])")
+                self.scores[3] = Int(self.num)!
+                //self.score3.text = "\(self.scores[3])"
+                //self.ans3.text = self.answer
+                print("Player: \(receivedPlayer!["name"]), Score: \(receivedPlayer?["score"]), Ans: \(receivedPlayer?["ans"])")
             }
             else
             {
