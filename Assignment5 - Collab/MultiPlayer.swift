@@ -66,10 +66,13 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     var timeInSeconds : Int = 0
     var scores = Array(repeating: 0, count: 4)
     var tappedCount = Array(repeating: 0, count: 4)
-    var numberOfPlayers = 4
+    var numberOfPlayers : Int = 0
     let choices = ["A", "B", "C", "D"]
+    var gameplayers = Array(repeating: (name: "", id: 0), count: 4)
     
-    var players:[(name: String, id: Int)] = []
+    var myplayer = (name: "", score: 0, Ans: "")
+    
+    
 
     
     var quiz = quizProperties()
@@ -226,14 +229,7 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         
     }
     
-    func givePeerID() -> ()
-    {
-        for i in 0..<session.connectedPeers.count
-        {
-            players.append((name: session.connectedPeers[i].displayName, id: i))
-            print("Name: \(session.connectedPeers[i].displayName), id: \(i)")
-        }
-    }
+   
     
     
     override func viewWillAppear(_ animated: Bool) {
@@ -269,7 +265,11 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         choice4.layer.cornerRadius = 15
         choice4.layer.masksToBounds = true
         
-        givePeerID()
+        //givePeerID()
+        
+        print("Players: \(numberOfPlayers)")
+        
+        myplayer.name = peerID.displayName
         
         print("Session count: \(session.connectedPeers.count)")
 
@@ -428,6 +428,7 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         // NOTE: this will only set player 1's speech overhead.
         // Need to loop through all players inside this func
         ans1.text = String(letter)
+        myplayer.Ans = ans1.text!
         
         choice1.isUserInteractionEnabled = false
         choice2.isUserInteractionEnabled = false
@@ -439,6 +440,7 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
             
             // Determine which player was correct ?
             scores[0] += 1
+            myplayer.score = scores[0]
             
             //for i in 0 ..< maxPlayers {
                 //score1.text = "\(scores[1])"
@@ -448,6 +450,16 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         else {
             countdown.text = "Incorrect!"
         }
+        
+        let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: myplayer)
+        
+        do{
+            try session.send(dataToSend, toPeers: session.connectedPeers, with: .unreliable)
+        }
+        catch let err {
+            print("Error in sending data \(err)")
+        }
+
         
         revealAnswer()
     }
@@ -521,6 +533,8 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         }
         
     }
+    
+   
 
     
 
@@ -576,9 +590,29 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         // this needs to be run on the main thread
         DispatchQueue.main.async(execute: {
             
-            //if let receivedString = NSKeyedUnarchiver.unarchiveObject(with: data) as? String{
-            // self.updateChatView(newText: receivedString, id: peerID)
-            //}
+            
+            
+           // let receivedPlayer = NSKeyedUnarchiver.unarchiveObject(with: data) as? (name: String, score: Int, ans: String)
+            
+            
+             /*switch receivedPlayer?.name
+             {
+                case gameplayers[1].name:
+                    self.scores[1] = (receivedPlayer?.score)!
+                    break
+                case gameplayers[2].name:
+                    
+                    self.scores[2] = (receivedPlayer?.score)!
+                    break
+
+                
+                case gameplayers[3].name:
+                
+                    self.scores[3] = (receivedPlayer?.score)!
+                    break
+
+             }*/
+            
             
         })
     }

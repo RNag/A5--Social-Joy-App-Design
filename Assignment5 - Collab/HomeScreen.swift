@@ -23,8 +23,9 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     
     var browser: MCBrowserViewController!
     var assistant: MCAdvertiserAssistant!
+    //var players:[(name: String, id: Int)] = []
     
-    
+    var players = Array(repeating: (name: "", id: 0), count: 4)
     
     @IBOutlet weak var gamePlayMode: UISegmentedControl!
     
@@ -65,6 +66,35 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         
         
         
+    }
+    
+    func givePeerID() -> ()
+    {
+        
+        players[0].name = peerID.displayName
+        players[0].id = 0
+        
+        for i in 0..<session.connectedPeers.count
+        {
+            switch i {
+            case 0:
+                players[i + 1].name = session.connectedPeers[0].displayName
+                players[i + 1].id = 1
+            case 1:
+                players[i + 1].name = session.connectedPeers[1].displayName
+                players[i + 1].id = 2
+            case 2:
+                players[i + 1].name = session.connectedPeers[2].displayName
+                players[i + 1].id = 3
+            default:
+                print("no peer")
+            }
+        }
+        
+        for i in 0..<players.count
+        {
+            print("\(players[i].name)")
+        }
     }
     
     
@@ -122,6 +152,20 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
                     break
                 }
                 
+                let moveToMulti = "move"
+                
+                let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: moveToMulti)
+                
+                do{
+                    try session.send(dataToSend, toPeers: session.connectedPeers, with: .unreliable)
+                }
+                catch let err {
+                    print("Error in sending data \(err)")
+                }
+                
+               
+
+                
                 performSegue(withIdentifier: "GoToMulti", sender: self)
                 return false
                 
@@ -145,6 +189,8 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         {
             let multi = segue.destination as! Multiplayer
             multi.session = session
+            multi.gameplayers = players
+            multi.numberOfPlayers = session.connectedPeers.count + 1
         }
     }
     
@@ -154,7 +200,9 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     func browserViewControllerDidFinish(_ browserViewController: MCBrowserViewController) {
         // Called when the browser view controller is dismissed
         dismiss(animated: true, completion: nil)
-         print("Session count: \(session.connectedPeers.count)")
+        // print("Session count: \(session.connectedPeers.count)")
+        
+        givePeerID()
     }
     
     func browserViewControllerWasCancelled(_ browserViewController: MCBrowserViewController) {
@@ -177,9 +225,14 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         // this needs to be run on the main thread
         DispatchQueue.main.async(execute: {
             
-            //if let receivedString = NSKeyedUnarchiver.unarchiveObject(with: data) as? String{
-            //self.updateChatView(newText: receivedString, id: peerID)
-            //}
+            let receivedString = NSKeyedUnarchiver.unarchiveObject(with: data) as? String
+            
+            if receivedString == "move"
+            {
+                
+                self.performSegue(withIdentifier: "GoToMulti", sender: self)
+            }
+            
             
         })
     }
