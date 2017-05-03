@@ -445,6 +445,9 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
             //for i in 0 ..< maxPlayers {
                 //score1.text = "\(scores[1])"
                 score1.text = "\(scores[0])"
+                score2.text = "\(scores[1])"
+                score3.text = "\(scores[2])"
+                score4.text = "\(scores[3])"
             //}
         }
         else {
@@ -592,26 +595,26 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
             
             
             
-           // let receivedPlayer = NSKeyedUnarchiver.unarchiveObject(with: data) as? (name: String, score: Int, ans: String)
+            let receivedPlayer = NSKeyedUnarchiver.unarchiveObject(with: data) as? (name: String, score: Int, ans: String)
             
             
-             /*switch receivedPlayer?.name
-             {
-                case gameplayers[1].name:
-                    self.scores[1] = (receivedPlayer?.score)!
-                    break
-                case gameplayers[2].name:
-                    
-                    self.scores[2] = (receivedPlayer?.score)!
-                    break
+            if receivedPlayer?.name == self.gameplayers[1].name
+            {
+                self.scores[1] = (receivedPlayer?.score)!
+            }
+            else if receivedPlayer?.name == self.gameplayers[2].name
+            {
+                self.scores[2] = (receivedPlayer?.score)!
+            }
+            else if receivedPlayer?.name == self.gameplayers[3].name
+            {
+                self.scores[3] = (receivedPlayer?.score)!
+            }
+            else
+            {
+                print("Player Score not recorded")
+            }
 
-                
-                case gameplayers[3].name:
-                
-                    self.scores[3] = (receivedPlayer?.score)!
-                    break
-
-             }*/
             
             
         })
