@@ -454,7 +454,12 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
             countdown.text = "Incorrect!"
         }
         
-        let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: myplayer)
+        
+        let obj :  [String: String] = ["name": "\(myplayer.name)", "score": "\(myplayer.score)", "ans": "\(myplayer.Ans)"]
+        
+        
+        
+        let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: obj)
         
         do{
             try session.send(dataToSend, toPeers: session.connectedPeers, with: .unreliable)
@@ -595,20 +600,29 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
             
             
             
-            let receivedPlayer = NSKeyedUnarchiver.unarchiveObject(with: data) as? (name: String, score: Int, ans: String)
+            let receivedPlayer = NSKeyedUnarchiver.unarchiveObject(with: data) as? Dictionary<String,String>
             
             
-            if receivedPlayer?.name == self.gameplayers[1].name
+            if receivedPlayer?["name"] == self.gameplayers[1].name
             {
-                self.scores[1] = (receivedPlayer?.score)!
+                let num : String = receivedPlayer!["score"]!
+                
+                self.scores[1] = Int(num)!
+                print("Player: \(receivedPlayer!["name"]), Score: \(receivedPlayer?["score"])")
             }
-            else if receivedPlayer?.name == self.gameplayers[2].name
+            else if receivedPlayer?["name"] == self.gameplayers[2].name
             {
-                self.scores[2] = (receivedPlayer?.score)!
+                let num : String = receivedPlayer!["score"]!
+                
+                self.scores[2] = Int(num)!
+                print("Player: \(receivedPlayer!["name"]), Score: \(receivedPlayer?["score"])")
             }
-            else if receivedPlayer?.name == self.gameplayers[3].name
+            else if receivedPlayer?["name"] == self.gameplayers[3].name
             {
-                self.scores[3] = (receivedPlayer?.score)!
+                let num : String = receivedPlayer!["score"]!
+                
+                self.scores[3] = Int(num)!
+                print("Player: \(receivedPlayer!["name"]), Score: \(receivedPlayer?["score"])")
             }
             else
             {
@@ -766,3 +780,32 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     
 }
 
+class my_player : NSObject, NSCoding {
+    var score = 0             //Text address to send to
+    var ans: String = ""        //Message to be sent
+    var name: String = ""             //Number of hours between messages (usually a multiple of 24 - 24 = daily)
+    
+    
+    init(score: Int, ans: String, name: String){
+        
+        self.score = score
+        self.ans = ans
+        self.name = name
+        
+        }
+    
+    required init?(coder aDecoder: NSCoder) {
+        score = aDecoder.decodeInteger(forKey: "score")
+        ans = aDecoder.decodeObject(forKey: "answer") as! String
+        name = aDecoder.decodeObject(forKey: "name") as! String
+
+    }
+    
+    func encode(with aCoder: NSCoder) {
+        
+        aCoder.encode(score, forKey: "score")
+        aCoder.encode(ans, forKey: "answer")
+        aCoder.encode(name, forKey: "name")
+        
+    }
+}
