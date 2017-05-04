@@ -19,6 +19,7 @@ class MCPeerManager: NSObject, MCSessionDelegate {
     
     override init() {
         super.init()
+
         peer = MCPeerID(displayName: UIDevice.current.name)
         session = MCSession(peer: peer)
         session.delegate = self
@@ -37,19 +38,13 @@ class MCPeerManager: NSObject, MCSessionDelegate {
     
     func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
         
-        // this needs to be run on the main thread
-        DispatchQueue.main.async(execute: {
-            
-            //if let receivedString = NSKeyedUnarchiver.unarchiveObject(with: data) as? String{
-            //self.updateChatView(newText: receivedString, id: peerID)
-            //}
-            
-        })
+
     }
     
     func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, with progress: Progress) {
         
     }
+    
     
     func session(_ session: MCSession, didReceive stream: InputStream, withName streamName: String, fromPeer peerID: MCPeerID) {
         
@@ -58,6 +53,7 @@ class MCPeerManager: NSObject, MCSessionDelegate {
     func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
         
         // Called when a connected peer changes state (for example, goes offline)
+        print("Count2: \(session.connectedPeers.count)")
         
         switch state {
         case MCSessionState.connected:

@@ -1,5 +1,5 @@
 //
-//  QuizScreen.swift
+//  SinglePlayer.swift
 //  Assignment5 - Collab
 //
 //  Created by Ritvik on 4/22/17.
@@ -59,7 +59,7 @@ struct quizProperties {
     var number = 0
 }
 
-class QuizScreen: UIViewController {
+class Singleplayer: UIViewController {
 
     @IBOutlet var options: [UIButton]!
     @IBOutlet var playerIcons: [UIImageView]!
@@ -138,9 +138,11 @@ class QuizScreen: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        
         quiz.number = 1
         quiz.qIndex = 0
 
+        
         //  Load JSON data before view is shown
         searchQuizData(quizNumber: quiz.number)
     }
@@ -154,6 +156,10 @@ class QuizScreen: UIViewController {
             option.layer.cornerRadius = 15
             option.layer.masksToBounds =  true
         }
+        
+        
+
+    
     }
     
     @IBAction func selectOption(_ sender: UIButton){

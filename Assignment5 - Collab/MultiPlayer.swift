@@ -9,48 +9,26 @@
 import UIKit
 import MultipeerConnectivity
 
-var mpc = MCPeerManager()
-
-class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionDelegate {
-    
-    
+class Multiplayer: UIViewController, MCSessionDelegate {
     
     var session: MCSession!
     
-    var peerID: MCPeerID!
-    
-    var browser: MCBrowserViewController!
-    var assistant: MCAdvertiserAssistant!
+    //var peerID: MCPeerID!
     
     
-    @IBOutlet weak var img1: UIImageView!
-    @IBOutlet weak var img2: UIImageView!
-    @IBOutlet weak var img3: UIImageView!
-    @IBOutlet weak var img4: UIImageView!
-    @IBOutlet weak var pid1: UILabel!
-    @IBOutlet weak var pid2: UILabel!
-    @IBOutlet weak var pid3: UILabel!
-    @IBOutlet weak var pid4: UILabel!
-    @IBOutlet weak var ans1: UILabel!
-    @IBOutlet weak var ans2: UILabel!
-    @IBOutlet weak var ans3: UILabel!
-    @IBOutlet weak var ans4: UILabel!
-    @IBOutlet weak var score1: UILabel!
-    @IBOutlet weak var score2: UILabel!
-    @IBOutlet weak var score3: UILabel!
-    @IBOutlet weak var score4: UILabel!
-    @IBOutlet weak var qheader: UILabel!
-    @IBOutlet weak var qsentence: UILabel!
-    @IBOutlet weak var choice1: UIButton!
-    @IBOutlet weak var choice2: UIButton!
-    @IBOutlet weak var choice3: UIButton!
-    @IBOutlet weak var choice4: UIButton!
-    @IBOutlet weak var countdown: UILabel!
-    @IBOutlet weak var startover: UIButton!
-    @IBOutlet weak var bubble1: UIImageView!
-    @IBOutlet weak var bubble2: UIImageView!
-    @IBOutlet weak var bubble3: UIImageView!
-    @IBOutlet weak var bubble4: UIImageView!
+    @IBOutlet var options: [UIButton]!
+    @IBOutlet var playerIcons: [UIImageView]!
+    @IBOutlet var playerScores: [UILabel]!
+    @IBOutlet var playerSpeechBubble: [UIImageView]!
+    @IBOutlet var playerVisualChoice : [UILabel]!
+    
+    @IBOutlet weak var headerLabel: UILabel!
+    @IBOutlet weak var sentenceLabel : UILabel!
+    @IBOutlet weak var cDownLabel : UILabel!
+    @IBOutlet weak var statusUpdateLabel: UILabel!
+    @IBOutlet weak var startOverButton: UIButton!
+    
+    
     
     let playerAssets : [UIImage] = [ #imageLiteral(resourceName: "User Filled-Blue2"), #imageLiteral(resourceName: "User Filled-Violet"), #imageLiteral(resourceName: "User Filled-Green"), #imageLiteral(resourceName: "User Filled-Orange")  ]
     
@@ -61,183 +39,123 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     let COUNTDOWN_TIME = 20
     let transitionTime = 3
     let maxPlayers = 4
+    static let numberOfChoices = 4
     
     var timer : Timer!
     var timeInSeconds : Int = 0
     var scores = Array(repeating: 0, count: 4)
-    var tappedCount = Array(repeating: 0, count: 4)
-    var numberOfPlayers = 4
+    
+    
+    var tappedCount = Array(repeating: 0, count: numberOfChoices)
+    var numberOfPlayers = 0
+    
+    var numberOfLockedInAnswers = 0
+    var readyUpCount = 0
+    
     let choices = ["A", "B", "C", "D"]
     
-    var players:[(name: String, id: Int)] = []
+    var players:[(peerId: MCPeerID, nickname: String)] = []
 
     
     var quiz = quizProperties()
     
+    func assignPeerIDs() -> ()
+    {
+        //  The number of peers is an underestimated count (does not include self peer Id), so adjust accordingly
+        
+        players.append( (peerId: session.myPeerID, nickname: "Me") )
+        
+        print("Nickname: \(players.first!.nickname), DisplayName: \(players.first!.peerId.displayName)")
+        
+        for i in 0 ..< session.connectedPeers.count
+        {
+            players.append((peerId: session.connectedPeers[i], nickname: "P\(i+1)"))
+            print("Nickname: \(players.last!.nickname), DisplayName: \(players.last!.peerId.displayName)")
+        }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        session.disconnect()
+        timer.invalidate()
+        print("You quit the session.")
+    }
     
     func initialize() {
         
-        timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(quizTimer), userInfo: nil, repeats: true)
-        
         timeInSeconds = 0
+
+        numberOfPlayers = players.count
+        numberOfLockedInAnswers = 0
+        readyUpCount += 1
         
-        for i in 0 ..< tappedCount.count {
+        print("INIT (RC: \(readyUpCount))")
+
+        for i in 0 ..< Multiplayer.numberOfChoices {
             tappedCount[i] = 0
         }
-        /*options.forEach({
+        
+        options.forEach({
             $0.backgroundColor = defaultColor
             $0.isUserInteractionEnabled = true
-        })*/
-        
-        choice1.backgroundColor = defaultColor
-        choice1.isUserInteractionEnabled = true
-        choice2.backgroundColor = defaultColor
-        choice2.isUserInteractionEnabled = true
-        choice3.backgroundColor = defaultColor
-        choice3.isUserInteractionEnabled = true
-        choice4.backgroundColor = defaultColor
-        choice4.isUserInteractionEnabled = true
+        })
         
         for i in 0 ..< maxPlayers {
             if i+1 > numberOfPlayers {
+                playerIcons[i].image = #imageLiteral(resourceName: "User-Unfilled")
+                playerIcons[i].alpha = 0.02
+                playerScores[i].isEnabled = false
+                playerScores[i].alpha = 0.5
                 
-                switch i {
-                    
-                case 0:
-                    
-                    img1.image = #imageLiteral(resourceName: "User-Unfilled")
-                    img1.alpha = 0.02
-                    score1.isEnabled = false
-                    score1.alpha = 0.5
-                    
-                    bubble1.isHidden = true
-                    ans1.isHidden = true
-                    
-                case 1:
-                    
-                    img2.image = #imageLiteral(resourceName: "User-Unfilled")
-                    img2.alpha = 0.02
-                    score2.isEnabled = false
-                    score2.alpha = 0.5
-                    
-                    bubble2.isHidden = true
-                    ans2.isHidden = true
-                    
-                case 2:
-                    
-                    img3.image = #imageLiteral(resourceName: "User-Unfilled")
-                    img3.alpha = 0.02
-                    score3.isEnabled = false
-                    score3.alpha = 0.5
-                    
-                    bubble3.isHidden = true
-                    ans3.isHidden = true
-                    
-                case 3:
-                    
-                    img4.image = #imageLiteral(resourceName: "User-Unfilled")
-                    img4.alpha = 0.02
-                    score4.isEnabled = false
-                    score4.alpha = 0.5
-                    
-                    bubble4.isHidden = true
-                    ans4.isHidden = true
-                    
-                default:
-                    img2.image = #imageLiteral(resourceName: "User Filled-Cyan")
-                    img2.alpha = 0.02
-                    score2.isEnabled = false
-                    score2.alpha = 0.5
-                    
-                    bubble2.isHidden = true
-                    ans2.isHidden = true
-                }
-                
+                playerSpeechBubble[i].isHidden = true
+                playerVisualChoice[i].isHidden = true
             }
                 
             else {
-                
-                switch i {
-                case 0:
-                    img1.image = playerAssets[i]
-                case 1:
-                    img2.image = playerAssets[i]
-                case 2:
-                    img3.image = playerAssets[i]
-                case 3:
-                    img4.image = playerAssets[i]
-                default:
-                    img1.image = playerAssets[2]
-                }
-                
+                playerIcons[i].image = playerAssets[i]
             }
-            
-            switch i {
-                
-            case 0:
-                ans1.text = ""
-                img1.contentMode = .scaleAspectFit
-                score1.text = "\(scores[i])"
-            case 1:
-                ans2.text = ""
-                img2.contentMode = .scaleAspectFit
-                score2.text = "\(scores[i])"
-            case 2:
-                ans3.text = ""
-                img3.contentMode = .scaleAspectFit
-                score3.text = "\(scores[i])"
-            case 3:
-                ans4.text = ""
-                img4.contentMode = .scaleAspectFit
-                score4.text = "\(scores[i])"
-            default:
-                ans1.text = "?????"
-                img1.contentMode = .scaleAspectFit
-                score1.text = "\(scores[i])"
-                
-            }
-            
+            playerVisualChoice[i].text = "..."
+            playerIcons[i].contentMode = .scaleAspectFit
+            playerScores[i].text = "\(scores[i])"
         }
         
-        qheader.text = "Question \(quiz.qIndex + 1)/\(quiz.qCount)"
-        qsentence.text = quiz.questions[quiz.qIndex].questionPrompt
-        countdown.text = String(COUNTDOWN_TIME)
-        startover.isHidden = true
+        headerLabel.text = "Question \(quiz.qIndex + 1)/\(quiz.qCount)"
+        sentenceLabel.text = quiz.questions[quiz.qIndex].questionPrompt
+        cDownLabel.text = String(COUNTDOWN_TIME)
+        statusUpdateLabel.isHidden = true
+        startOverButton.isHidden = true
         
-        for i in 0..<quiz.choices.count {
+        for (i, option) in options.enumerated() {
             
-            switch i {
-            case 0:
-                choice1.setTitle(quiz.choices[i] + ") " + quiz.questions[quiz.qIndex].choices[quiz.choices[i]]! , for: .normal)
-            case 1:
-                choice2.setTitle(quiz.choices[i] + ") " + quiz.questions[quiz.qIndex].choices[quiz.choices[i]]! , for: .normal)
-
-            case 2:
-                choice3.setTitle(quiz.choices[i] + ") " + quiz.questions[quiz.qIndex].choices[quiz.choices[i]]! , for: .normal)
-
-            case 3:
-                choice4.setTitle(quiz.choices[i] + ") " + quiz.questions[quiz.qIndex].choices[quiz.choices[i]]! , for: .normal)
-
-            default:
-                choice1.setTitle(quiz.choices[i] + ")???? " + quiz.questions[quiz.qIndex].choices[quiz.choices[i]]! , for: .normal)
-            }
-            
+            option.setTitle(quiz.choices[i] + ") " + quiz.questions[quiz.qIndex].choices[quiz.choices[i]]! , for: .normal)
         }
         
-    }
-    
-    func givePeerID() -> ()
-    {
-        for i in 0..<session.connectedPeers.count
-        {
-            players.append((name: session.connectedPeers[i].displayName, id: i))
-            print("Name: \(session.connectedPeers[i].displayName), id: \(i)")
+        
+        let msg : [String : Any] = ["readyCount" : 1]
+        let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: msg)
+        let myPeers = players.dropFirst().map({$0.peerId})
+        
+        do {
+            print("SENDING READY ...")
+            try session.send(dataToSend, toPeers: myPeers, with: .unreliable)
         }
+            
+        catch let err {
+            print("There was a data transmission error in: SENDING /nError code: \(err)")
+        }
+        
+        syncAllPlayers()
+        
     }
     
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        
+        session.delegate = self
+        
+        //  Assign peer IDs to each player in game
+        assignPeerIDs()
+        
         quiz.number = 1
         quiz.qIndex = 0
         
@@ -250,214 +168,263 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
-        
-        self.peerID = MCPeerID(displayName: UIDevice.current.name)
-       // self.session = MCSession(peer: peerID)
-        self.browser = MCBrowserViewController(serviceType: "chat", session: session)
-        self.assistant = MCAdvertiserAssistant(serviceType: "chat", discoveryInfo: nil, session: session)
-        
-        //assistant.start()
-        session.delegate = self
-        //browser.delegate = self
-        
-        choice1.layer.cornerRadius = 15
-        choice1.layer.masksToBounds = true
-        choice2.layer.cornerRadius = 15
-        choice2.layer.masksToBounds = true
-        choice3.layer.cornerRadius = 15
-        choice3.layer.masksToBounds = true
-        choice4.layer.cornerRadius = 15
-        choice4.layer.masksToBounds = true
-        
-        givePeerID()
-        
-        print("Session count: \(session.connectedPeers.count)")
-
-        
+        for option in options {
+            option.layer.cornerRadius = 15
+            option.layer.masksToBounds =  true
+            option.titleLabel?.numberOfLines = 0
+            option.titleLabel?.lineBreakMode = .byWordWrapping
+        }
     }
     
-    
-    @IBAction func selectOption(_ sender: UIButton) {
+    @IBAction func selectOption(_ sender: UIButton){
         
-        if (sender.tag == 1)
-        {
-            tappedCount[0] += 1
+        if let i = options.index(of: sender) {
+            tappedCount[i] += 1
             
-            choice1.isSelected = false
-            choice2.isSelected = false
-            choice3.isSelected = false
-            choice4.isSelected = false
+            options.forEach({$0.isSelected = false})
             
-            switch tappedCount[0] {
+            switch tappedCount[i] {
             case 1:
-                choice1.backgroundColor = selectColor
-                choice2.backgroundColor = defaultColor
-                choice3.backgroundColor = defaultColor
-                choice4.backgroundColor = defaultColor
+                options[i].backgroundColor = selectColor
+                
+                for c in 0 ..< tappedCount.count {
+                    if c != i {
+                        tappedCount[c] = 0
+                        options[c].backgroundColor = defaultColor
+                    }
+                }
                 
             case 2:
                 
-                shouldSubmit(1)
+                shouldSubmit(i)
                 
             default: break
             }
-
         }
-        else if sender.tag == 2
-        {
-            tappedCount[1] += 1
-            
-            choice1.isSelected = false
-            choice2.isSelected = false
-            choice3.isSelected = false
-            choice4.isSelected = false
-            
-            switch tappedCount[1] {
-            case 1:
-                choice2.backgroundColor = selectColor
-                choice1.backgroundColor = defaultColor
-                choice3.backgroundColor = defaultColor
-                choice4.backgroundColor = defaultColor
-                
-            case 2:
-                
-                shouldSubmit(2)
-                
-            default: break
-            }
-
-        }
-        else if sender.tag == 3
-        {
-            tappedCount[2] += 1
-            
-            choice1.isSelected = false
-            choice2.isSelected = false
-            choice3.isSelected = false
-            choice4.isSelected = false
-            
-            switch tappedCount[2] {
-            case 1:
-                choice3.backgroundColor = selectColor
-                choice2.backgroundColor = defaultColor
-                choice1.backgroundColor = defaultColor
-                choice4.backgroundColor = defaultColor
-                
-            case 2:
-                
-                shouldSubmit(3)
-                
-            default: break
-            }
-
-        }
-        else if sender.tag == 4
-        {
-            tappedCount[3] += 1
-            
-            choice1.isSelected = false
-            choice2.isSelected = false
-            choice3.isSelected = false
-            choice4.isSelected = false
-            
-            switch tappedCount[3] {
-            case 1:
-                choice4.backgroundColor = selectColor
-                choice2.backgroundColor = defaultColor
-                choice3.backgroundColor = defaultColor
-                choice1.backgroundColor = defaultColor
-                
-            case 2:
-                
-                shouldSubmit(4)
-                
-            default: break
-            }
-
-        }
-        else
-        {
-            print("Error")
-        }
-        
-       
-        
     }
-    
-    
     
     func timeUp(_ selectIndex : Int) {
+        let defaultLetter = "X"
         
         /* TO-DO: maybe add red text showing user choice if user runs out of time & does not submit (this is assuming his submission would not? get recorded
-         let letter = options[selectIndex].currentTitle!.characters.first!
          
+         let letter = options[selectIndex].currentTitle!.characters.first!
          playerVisualChoice[0].text = String(letter)
          playerVisualChoice[0].textColor = UIColor.red
          */
         
-        ans1.text = ""
-        ans2.text = ""
-        ans3.text = ""
-        ans4.text = ""
-        countdown.text = "Time's up!"
+        playerVisualChoice[0].text = defaultLetter
+        cDownLabel.text = "Time's up!"
+        for option in options {
+            option.isUserInteractionEnabled = false
+        }
+        UIApplication.shared.isNetworkActivityIndicatorVisible = false
+
         revealAnswer()
+
+        //  On successful submission, share the result with all players. In case of TIME IS UP: force a user submission, since user did not make a choice
+        
+        numberOfLockedInAnswers += 1
+
+        
+        var msg : [String : Any] = [:]
+        msg["peerChoice"] = defaultLetter
+        msg["isCorrect"] = false
+        
+        let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: msg)
+        let myPeers = players.dropFirst().map({$0.peerId})
+        
+        do {
+            print("Trying to send choice (Time's Up) ...")
+            try session.send(dataToSend, toPeers: myPeers, with: .unreliable)
+        }
+        catch let err {
+            print("There was a data transmission error in: SENDING /nError code: \(err)")
+        }
+        
+        
+        if numberOfLockedInAnswers >= numberOfPlayers {
+            print("Going to Next (Time Up For All)")
+            goNext()
+        }
     }
+    
+    
     
     func shouldSubmit(_ selectIndex : Int) {
         
-        let letter = choices[selectIndex - 1]
+        let letter = options[selectIndex].currentTitle!.characters.first!
         
         timer.invalidate()
         
+        options[selectIndex].backgroundColor = submitColor
         
-        switch selectIndex
-        {
-        case 1:
-            choice1.backgroundColor = submitColor
-        case 2:
-            choice2.backgroundColor = submitColor
-        case 3:
-            choice3.backgroundColor = submitColor
-        case 4:
-            choice4.backgroundColor = submitColor
-        default:
-            print("Error in submitted answer")
+        numberOfLockedInAnswers += 1
+        
+        let playersUndecided = numberOfPlayers - numberOfLockedInAnswers
+        
+        self.statusUpdateLabel.text = "Waiting on \(playersUndecided) more players ..."
+        self.statusUpdateLabel.isHidden = false
+        UIApplication.shared.isNetworkActivityIndicatorVisible = true
+        
+        //  On successful submission, share the result with all players
+        var msg : [String : Any] = [:]
+        msg["peerChoice"] = String(letter)
+        msg["isCorrect"] = (String(letter) == quiz.questions[quiz.qIndex].answer)
+        
+        let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: msg)
+        let myPeers = players.dropFirst().map({$0.peerId})
+
+        do {
+            print("Trying to send choice (Submit) ...")
+            try session.send(dataToSend, toPeers: myPeers, with: .unreliable)
+        }
+            
+        catch let err {
+            print("There was a data transmission error in: SENDING /nError code: \(err)")
         }
         
+
         
         // NOTE: this will only set player 1's speech overhead.
         // Need to loop through all players inside this func
-        ans1.text = String(letter)
+        playerVisualChoice[0].text = String(letter)
         
-        choice1.isUserInteractionEnabled = false
-        choice2.isUserInteractionEnabled = false
-        choice3.isUserInteractionEnabled = false
-        choice4.isUserInteractionEnabled = false
+        for option in options {
+            option.isUserInteractionEnabled = false
+        }
         
         if (String(letter) == quiz.questions[quiz.qIndex].answer) {
-            countdown.text = "Nice Job!"
-            
-            // Determine which player was correct ?
+            cDownLabel.text = "Nice Job!"
+
             scores[0] += 1
+            playerScores[0].text = "\(scores[0])"
             
-            //for i in 0 ..< maxPlayers {
-                //score1.text = "\(scores[1])"
-                score1.text = "\(scores[0])"
-            //}
         }
         else {
-            countdown.text = "Incorrect!"
+            cDownLabel.text = "Incorrect!"
         }
         
-        revealAnswer()
-    }
-
-    
-    @IBAction func restartQuiz(_ sender: Any) {
         
-        startover.isHidden = true
+        revealAnswer()
+        
+        if numberOfLockedInAnswers >= numberOfPlayers {
+            print("Going to Next (You Were Last Needed)")
+            goNext()
+        }
+    }
+    
+    func revealAnswer() {
+        // perhaps setup as a timer instead ?
+        
+        
+        options[quiz.choices.index(of: quiz.questions[quiz.qIndex].answer)!].backgroundColor = revealColor
+        
+        
+    }
+    
+    
+    func goNext() {
+        
+        UIApplication.shared.isNetworkActivityIndicatorVisible = false
+        statusUpdateLabel.isHidden = true
+        
+        quiz.qIndex += 1
+        readyUpCount = 0
+        
+        _ = Timer.scheduledTimer(timeInterval: 3, target: self, selector: #selector(loadNextQuestion), userInfo: nil, repeats: false)
+        
+        
+        //let when = DispatchTime.now() + 3
+        //DispatchQueue.main.asyncAfter(deadline: when) {
+            // Your code with delay
+            
+
+        //}
+        
+    }
+    
+    
+    func quizTimer() {
+        
+        timeInSeconds += 1
+        cDownLabel.text = String(COUNTDOWN_TIME - timeInSeconds)
+        
+        if timeInSeconds == COUNTDOWN_TIME {
+            print("\(timeInSeconds) - \(COUNTDOWN_TIME)")
+            timer.invalidate()
+            timeUp(0)
+        }
+    }
+    
+    func loadNextQuestion(_ tTimer : Timer) {
+        
+        tTimer.invalidate()
+        print("Next question loaded.")
+        
+        if quiz.qIndex == quiz.qCount {   // End of quiz number
+            
+            quiz.qIndex = 0               // Start from 1st question of new quiz
+            
+            let playerOneScore = scores[0]
+            //  Determine the winner (if there is any)
+            scores.sort(by: {$0 > $1})
+            
+            if playerOneScore == scores.first! {  //Satisfies predicate for a win-draw scenario
+                if playerOneScore == scores[1] {
+                    cDownLabel.text = "You tied !"
+                }
+                else {
+                    cDownLabel.text = "You WON !"
+                }
+            }
+            else {
+                cDownLabel.text = "You lost."
+            }
+            
+            startOverButton.isHidden = false
+        }
+            
+        else {
+            UIApplication.shared.isNetworkActivityIndicatorVisible = true
+            initialize()
+        }
+    }
+    
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
+    }
+    
+    
+    @IBAction func restartQuiz(_ sender: UIButton) {
+
+        //  prepare for delayed response(s)
+        UIApplication.shared.isNetworkActivityIndicatorVisible = true
+        
+        startOverButton.isHidden = true
+        
+        //  send forwarded request/action to all connected peers
+        var msg = [String : Any]()
+        msg["shouldRestart"] = true
+        
+        let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: msg)
+        let myPeers = self.players.dropFirst().map({$0.peerId})
+        
+        do {
+            print("Restarting ...")
+            try session.send(dataToSend, toPeers: myPeers, with: .unreliable)
+        }
+            
+        catch let err {
+            print("There was a data transmission error in: SENDING /nError code: \(err)")
+        }
+        
+        
+        //  perform actions for self - load next quiz
         quiz.number += 1
         
+        // Resets own -copy- of scores for all players
         for i in 0 ..< maxPlayers {
             scores[i] = 0
         }
@@ -465,105 +432,26 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         DispatchQueue.main.async(){
             self.searchQuizData(quizNumber: self.quiz.number)
         }
+        
     }
     
-    
-    func revealAnswer()
-    {
-        // perhaps setup as a timer instead ?
+    func syncAllPlayers() {
+        //  If all players are readied up, start the timer for everyone at the SAME time!
         
-        switch (quiz.choices.index(of: quiz.questions[quiz.qIndex].answer)!) {
-        case 0:
-            choice1.backgroundColor = revealColor
-        case 1:
-            choice2.backgroundColor = revealColor
-        case 2:
-            choice3.backgroundColor = revealColor
-        case 3:
-            choice4.backgroundColor = revealColor
-        default:
-            choice1.backgroundColor = selectColor
-        }
-        
-        
-        let when = DispatchTime.now() + 3
-        
-        quiz.qIndex += 1
-        
-        DispatchQueue.main.asyncAfter(deadline: when) {
-            // Your code with delay
+        if readyUpCount >= numberOfPlayers {
+            readyUpCount = 0
             
-            if self.quiz.qIndex == self.quiz.qCount {   // End quiz
-                self.quiz.qIndex = 0
-                
-                let playerScore = self.scores[0]  // Assume player one
-                //  Determine the winner (if there is any)
-                self.scores.sort(by: {$0 > $1})
-                
-                if playerScore == self.scores.first! {  //Satisfies predicate for a win-draw scenario
-                    if self.scores[0] == self.scores[1] {
-                        self.countdown.text = "You tied !"
-                    }
-                    else {
-                        self.countdown.text = "You WON !"
-                    }
-                }
-                else {
-                    self.countdown.text = "You lost."
-                }
-                
-                self.startover.isHidden = false
-                
-            }
-            else {
-                self.initialize()
-            }
-        }
-        
-    }
-
-    
-
-    
-    func quizTimer() {
-        
-        timeInSeconds += 1
-        countdown.text = String(COUNTDOWN_TIME - timeInSeconds)
-        
-        
-        if timeInSeconds == COUNTDOWN_TIME {
-            timer.invalidate()
-            timeUp(0)
+            UIApplication.shared.isNetworkActivityIndicatorVisible = false
+            
+            print("READY UP CHECK - DONE")
+            
+            // start timer
+            if timer != nil { timer.invalidate() }
+            
+            self.timeInSeconds = 0
+            self.timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(self.quizTimer), userInfo: nil, repeats: true)
         }
     }
-    
-
-    
-    
-    
-    
-    @IBAction func connect(_ sender: UIButton) {
-        
-        present(browser, animated: true, completion: nil)
-        
-    }
-    
-    
-    //**********************************************************
-    // required functions for MCBrowserViewControllerDelegate
-    func browserViewControllerDidFinish(_ browserViewController: MCBrowserViewController) {
-        // Called when the browser view controller is dismissed
-        dismiss(animated: true, completion: nil)
-    }
-    
-    func browserViewControllerWasCancelled(_ browserViewController: MCBrowserViewController) {
-        // Called when the browser view controller is cancelled
-        dismiss(animated: true, completion: nil)
-    }
-    //**********************************************************
-    
-    
-    
     
     //**********************************************************
     // required functions for MCSessionDelegate
@@ -571,15 +459,102 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         
     }
     
-    func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
+    func session(_ session: MCSession, didReceive data: Data, fromPeer sender: MCPeerID) {
         
+
         // this needs to be run on the main thread
         DispatchQueue.main.async(execute: {
+            guard
+                let receivedDict = NSKeyedUnarchiver.unarchiveObject(with: data) as? [String : Any],
+                let senderIndex = self.players.index(where: {$0.peerId == sender})
+                
+            else {
+                print("There was a data transmission error in: RECEIVING")
+                return
+            }
             
-            //if let receivedString = NSKeyedUnarchiver.unarchiveObject(with: data) as? String{
-            // self.updateChatView(newText: receivedString, id: peerID)
-            //}
+            print("Trying to receive... Main Thread")
             
+            //  Ready up - automatically handled
+            if  let rc = receivedDict["readyCount"] {
+                self.readyUpCount += (rc as! Int)
+                
+                
+                print("READY UP CHECK: \(self.readyUpCount)/\(self.numberOfPlayers)")
+                
+                
+
+                
+                //BROADCAST
+                let msg : [String : Any] = ["Broadcast" : [self.readyUpCount, self.numberOfPlayers]]
+                
+                
+                let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: msg)
+                let myPeers = self.players.dropFirst().map({$0.peerId})
+                
+                do {
+                    print("Broadcasting ready status ...")
+                    try session.send(dataToSend, toPeers: myPeers, with: .unreliable)
+                }
+                
+                catch let err {
+                    print("There was a data transmission error in: SENDING /nError code: \(err)")
+                }
+                
+                self.syncAllPlayers()
+                
+                
+            }
+            
+            if let bc = receivedDict["Broadcast"] {
+                let cast = bc as! [Int]
+                let playerTag = self.players.first(where: {$0.peerId == sender})!.nickname
+                
+                //  Use for debugging purposes
+                print("New Broadcast from \(playerTag): Readied \(cast[0])/\(cast[1]) needed")
+            }
+            
+            if  let choice = receivedDict["peerChoice"],
+                let isCorrect = receivedDict["isCorrect"]
+            {
+               
+                self.playerVisualChoice[senderIndex].text = choice as? String
+                self.scores[senderIndex] += isCorrect as! Bool ? 1 : 0
+                self.playerScores[senderIndex].text = String(self.scores[senderIndex])
+                self.numberOfLockedInAnswers += 1
+
+                print("Received player choice (\(choice)) - Submitted \(self.numberOfLockedInAnswers) ")
+ 
+                
+                let playersUndecided = self.numberOfPlayers - self.numberOfLockedInAnswers
+                self.statusUpdateLabel.text = "Waiting on \(playersUndecided) more players ..."
+                if  (self.numberOfLockedInAnswers >= self.numberOfPlayers) {
+                        print("Going to Next (received from last needed)")
+                        self.goNext()
+                }
+                
+            }
+            
+            if let shouldRestart = receivedDict["shouldRestart"] {
+                if (shouldRestart as! Bool) {
+                    //  prepare for delayed response(s)
+                    UIApplication.shared.isNetworkActivityIndicatorVisible = true
+                    self.startOverButton.isHidden = true
+                    
+                    //  perform actions for self - load next quiz
+                    self.quiz.number += 1
+                
+                    // Resets own -copy- of scores for all players
+                    for i in 0 ..< self.maxPlayers {
+                        self.scores[i] = 0
+                    }
+                
+                    //DispatchQueue.main.async(){
+                    self.searchQuizData(quizNumber: self.quiz.number)
+                    //}
+        
+                }
+            }
         })
     }
     
@@ -591,10 +566,8 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         
     }
     
+    
     func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
-        
-        // Called when a connected peer changes state (for example, goes offline)
-        
         switch state {
         case MCSessionState.connected:
             print("Connected: \(peerID.displayName)")
@@ -603,11 +576,21 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
             print("Connecting: \(peerID.displayName)")
             
         case MCSessionState.notConnected:
-            print("Not Connected: \(peerID.displayName)")
+            let exitingPlayer = players.first(where: {$0.peerId == peerID})!
+            
+            print("Not Connected: \(exitingPlayer.nickname)")
+            //  Remove player from current list of players
+            
+            
+            numberOfPlayers -= 1
+            players.remove(at: players.index(where: {$0.peerId == peerID})!)
+            
         }
-        
     }
+    
     //**********************************************************
+    
+    
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
     }
@@ -619,7 +602,6 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         let STATUS_OK = 200
         
         UIApplication.shared.isNetworkActivityIndicatorVisible = true
-        
         
         let task = session.dataTask(with: request) { (data, response, error) in
             
@@ -634,6 +616,7 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
                 
             else if statusCode! != STATUS_OK { // Status code != OK can happen for any number of reasons, chief among them is the 404 (Not Found) error, in which we rollback to Quiz 1 (default)
                 DispatchQueue.main.async {
+
                     self.quiz.number = 1
                     self.searchQuizData(quizNumber: self.quiz.number)
                 }
@@ -662,33 +645,20 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     }
     
     func setUp(){
+        UIApplication.shared.isNetworkActivityIndicatorVisible = true
         initialize()
         quiz.qIndex = 0
         
-        qheader.text = "Question \(quiz.qIndex + 1)/\(quiz.qCount)"
-        qsentence.text = quiz.questions[quiz.qIndex].questionPrompt
+        headerLabel.text = "Question \(quiz.qIndex + 1)/\(quiz.qCount)"
+        sentenceLabel.text = quiz.questions[quiz.qIndex].questionPrompt
         
         let multipleChoices = ["A", "B", "C", "D"]
-        for i in 0..<multipleChoices.count {
+        for (i, option) in options.enumerated() {
             
-            switch i {
-            case 0:
-                choice1.setTitle(multipleChoices[i] + ") " + quiz.questions[quiz.qIndex].choices[multipleChoices[i]]! , for: .normal)
-            case 1:
-                choice2.setTitle(multipleChoices[i] + ") " + quiz.questions[quiz.qIndex].choices[multipleChoices[i]]! , for: .normal)
-            case 2:
-                choice3.setTitle(multipleChoices[i] + ") " + quiz.questions[quiz.qIndex].choices[multipleChoices[i]]! , for: .normal)
-            case 3:
-                choice4.setTitle(multipleChoices[i] + ") " + quiz.questions[quiz.qIndex].choices[multipleChoices[i]]! , for: .normal)
-            default:
-                choice1.setTitle(multipleChoices[i] + ")???? " + quiz.questions[quiz.qIndex].choices[multipleChoices[i]]! , for: .normal)
-            }
-            
-            
+            option.setTitle(multipleChoices[i] + ") " + quiz.questions[quiz.qIndex].choices[multipleChoices[i]]! , for: .normal)
         }
         
-        
-        UIApplication.shared.isNetworkActivityIndicatorVisible = false
+        print("setup() ran successfully, final end RC: \(readyUpCount)")
     }
     
     
@@ -716,16 +686,6 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         quiz.topic = quizTopic
         
     }
-
-
-    
-    
-    
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
-    }
-    
     
 }
 

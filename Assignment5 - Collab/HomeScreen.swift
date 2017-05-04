@@ -18,6 +18,8 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         case MultiPlayer = 1
     }
     
+    @IBOutlet weak var gamePlayMode: UISegmentedControl!
+    
     var session: MCSession!
     var peerID: MCPeerID!
     
@@ -25,33 +27,48 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     var assistant: MCAdvertiserAssistant!
     
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+        
+        if assistant == nil {
+            // This prevents viewWillAppear() from running if the Browser VC is being dismissed
+            
+            print("Refreshing ...")
+            self.peerID = MCPeerID(displayName: UIDevice.current.name)
+            self.session = MCSession(peer: peerID)
+            self.browser = MCBrowserViewController(serviceType: "quiz", session: session)
+            self.assistant = MCAdvertiserAssistant(serviceType: "quiz", discoveryInfo: nil, session: session)
+            assistant.start()
+            session.delegate = self
+            browser.delegate = self
+        }
+        
+
+        
+        // Do any additional setup after loading the view.
+    }
     
-    @IBOutlet weak var gamePlayMode: UISegmentedControl!
+    override func viewWillDisappear(_ animated: Bool) {
+
+        if !browser.isBeingPresented {
+            assistant.stop()
+            assistant = nil
+            print("Dismissing homescreen ...")
+        }
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         let screenWidthClass = self.traitCollection.horizontalSizeClass.rawValue
         
-        
         if screenWidthClass == UIUserInterfaceSizeClass.regular.rawValue {// Regular Size Width indicates an iPad model screen
-            
             let font = UIFont.systemFont(ofSize: 24)
             gamePlayMode.setTitleTextAttributes([NSFontAttributeName: font], for: .normal)
-            
         }
         
-        self.peerID = MCPeerID(displayName: UIDevice.current.name)
-        self.session = MCSession(peer: peerID)
-        self.browser = MCBrowserViewController(serviceType: "quiz", session: session)
-        self.assistant = MCAdvertiserAssistant(serviceType: "quiz", discoveryInfo: nil, session: session)
-        
-        assistant.start()
-        session.delegate = self
-        browser.delegate = self
-        
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Connect", style: .plain, target: self, action: #selector(RTapped))
-        
-        // Do any additional setup after loading the view.
     }
     
     override func didReceiveMemoryWarning() {
@@ -87,65 +104,67 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     }
     
     
-    
-    
-    override func shouldPerformSegue(withIdentifier identifier: String, sender: Any?) -> Bool {
-        if identifier == "homeToQuiz" {
-            
-            
-            switch(gamePlayMode.selectedSegmentIndex) {
-            case playerModes.SinglePlayer.rawValue:
-                return true
-            case playerModes.MultiPlayer.rawValue:
-                if session.connectedPeers.count == 0
-                {
-                    let alert = UIAlertController(title: "PeerCount", message: "Peer Count is 0", preferredStyle: .alert)
-                    let peerAction = UIAlertAction(title: "Need more peers", style: .default, handler: nil)
-                    
-                    alert.addAction(peerAction)
-                    
-                    present(alert, animated: true, completion: nil)
-                    
-                    break
-                    
-                }
-                
-                if session.connectedPeers.count > 4
-                {
-                    let alert = UIAlertController(title: "PeerCount", message: "Peer Count is more than 4", preferredStyle: .alert)
-                    let peerAction = UIAlertAction(title: "Need", style: .default, handler: nil)
-                    
-                    alert.addAction(peerAction)
-                    
-                    present(alert, animated: true, completion: nil)
-                    
-                    break
-                }
-                
-                performSegue(withIdentifier: "GoToMulti", sender: self)
-                return false
-                
-            default:
-                return false
-            }
-        }
+    @IBAction func startQuizWithMode(_ sender: UIButton) {
         
-        return true
+        switch(gamePlayMode.selectedSegmentIndex) {
+        
+        case playerModes.SinglePlayer.rawValue:
+                performSegue(withIdentifier: "homeToSingle", sender: self)
+            
+        case playerModes.MultiPlayer.rawValue:
+            
+            switch(session.connectedPeers.count){
+            
+            case 0:
+                presentAlert("No Peers Found", "Please add at least one other peer.", "Cancel")
+            case 4 ... .max:
+                presentAlert("Too Many Peers", "Maximum number of players (4) reached.\nPlease disconnect or drop some peers.", "Cancel")
+            default:
+                performSegue(withIdentifier: "homeToMulti", sender: self)
+            
+            }
+            
+        default:
+            break
+            
+        }
     }
     
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "homeToQuiz" {
-            let _ = segue.destination as! QuizScreen
+        
+        browser.dismiss(animated: false, completion: nil)
+        
+        if segue.identifier == "homeToSingle" {
+            let _ = segue.destination as! Singleplayer
+        }
+        
+        if segue.identifier == "homeToMulti"
+        {
+            let multi = segue.destination as! Multiplayer
+            multi.session = session
             
+            //  Immediately send/forward all connected peers to the destination view controller
+            let msg : [String : Any] = ["segueId" : "forwardToMulti"]
+            let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: msg)
+            let myPeers = session.connectedPeers.filter({$0 != session.myPeerID})
+
+            do {
+                try session.send(dataToSend, toPeers: myPeers, with: .unreliable)
+            }
+            
+            catch let err {
+                print("Error in sending data \(err)")
+            }
             
         }
         
-        if segue.identifier == "GoToMulti"
+        if segue.identifier == "forwardToMulti"
         {
             let multi = segue.destination as! Multiplayer
             multi.session = session
         }
+        
     }
     
     
@@ -154,7 +173,18 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     func browserViewControllerDidFinish(_ browserViewController: MCBrowserViewController) {
         // Called when the browser view controller is dismissed
         dismiss(animated: true, completion: nil)
-         print("Session count: \(session.connectedPeers.count)")
+        
+        let msg : [String : Any] = ["connected_MSG" : "There are (\(session.connectedPeers.count + 1)) Players connected."]
+        let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: msg)
+        let myPeers = session.connectedPeers
+        
+        do {
+            try session.send(dataToSend, toPeers: myPeers, with: .unreliable)
+        }
+        catch let err {
+            print("Error in sending data \(err)")
+        }
+        print(msg["connected_MSG"]!)    // Prints on debug screen (for player who is dismissing)
     }
     
     func browserViewControllerWasCancelled(_ browserViewController: MCBrowserViewController) {
@@ -162,7 +192,6 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         dismiss(animated: true, completion: nil)
     }
     //**********************************************************
-    
     
     
     
@@ -176,12 +205,23 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         
         // this needs to be run on the main thread
         DispatchQueue.main.async(execute: {
+            guard let receivedDict = NSKeyedUnarchiver.unarchiveObject(with: data) as? [String : Any]
+            else {
+                print("Error receiving data ...")
+                return
+            }
+            if let forwardedSegueId = receivedDict["segueId"] as? String {
+                
+                self.browser.dismiss(animated: false, completion: nil)
+                self.performSegue(withIdentifier: forwardedSegueId, sender: self)
+            }
             
-            //if let receivedString = NSKeyedUnarchiver.unarchiveObject(with: data) as? String{
-            //self.updateChatView(newText: receivedString, id: peerID)
-            //}
+            if let connected_MSG = receivedDict["connected_MSG"] as? String {
+                print(connected_MSG)
+            }
             
         })
+    
     }
     
     func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, with progress: Progress) {
@@ -192,20 +232,23 @@ class HomeScreen : UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         
     }
     
-    func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
+    
+    func session(_ session: MCSession, peer: MCPeerID, didChange state: MCSessionState) {
         
         // Called when a connected peer changes state (for example, goes offline)
         
         switch state {
         case MCSessionState.connected:
-            print("Connected: \(peerID.displayName)")
+            print("Connected: \(session.connectedPeers.last!.displayName) - Peer #\(session.connectedPeers.count)")
             
+
         case MCSessionState.connecting:
-            print("Connecting: \(peerID.displayName)")
+            print("Connecting with ... Player \(session.connectedPeers.count + 2)")
             
         case MCSessionState.notConnected:
-            print("Not Connected: \(peerID.displayName)")
+            print("Not Connected: \(peer.displayName)")
         }
+        
         
     }
     //**********************************************************
