@@ -75,6 +75,9 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
     
     var myplayer = (name: "", score: 0, Ans: "")
     var answers = Array(repeating: "", count: 3)
+    let msg1 = "reveal"
+    let msg2 = "restart"
+    let msg3 = "back"
     
     
 
@@ -269,6 +272,7 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         choice4.layer.cornerRadius = 15
         choice4.layer.masksToBounds = true
         
+        
         //givePeerID()
         
         print("Players: \(numberOfPlayers)")
@@ -276,8 +280,29 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         myplayer.name = peerID.displayName
         
         print("Session count: \(session.connectedPeers.count)")
+        
+        self.navigationItem.hidesBackButton = true
+        let newBackButton = UIBarButtonItem(title: "Back", style: UIBarButtonItemStyle.plain, target: self, action: #selector(Multiplayer.back(sender:)))
+        self.navigationItem.leftBarButtonItem = newBackButton
 
         
+    }
+    
+    
+    func back(sender: UIBarButtonItem) {
+        // Perform your custom actions
+        // ...
+        // Go back to the previous ViewController
+        let dataToSend3 =  NSKeyedArchiver.archivedData(withRootObject: msg3)
+        do{
+            try session.send(dataToSend3, toPeers: session.connectedPeers, with: .unreliable)
+        }
+        catch let err {
+            print("Error in sending data in msg3 \(err)")
+        }
+
+        print("Go back!")
+        _ = navigationController?.popViewController(animated: true)
     }
     
     
@@ -484,12 +509,30 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
         
         if count == session.connectedPeers.count && (ans1.text != "")
         {
+            
+            let dataToSend1 =  NSKeyedArchiver.archivedData(withRootObject: msg1)
+            do{
+                try session.send(dataToSend1, toPeers: session.connectedPeers, with: .unreliable)
+            }
+            catch let err {
+                print("Error in sending data in msg1 \(err)")
+            }
+            
             revealAnswer()
         }
     }
 
     
     @IBAction func restartQuiz(_ sender: Any) {
+        
+        let dataToSend2 =  NSKeyedArchiver.archivedData(withRootObject: msg2)
+        do{
+            try session.send(dataToSend2, toPeers: session.connectedPeers, with: .unreliable)
+        }
+        catch let err {
+            print("Error in sending data in msg2 \(err)")
+        }
+
         
         startover.isHidden = true
         quiz.number += 1
@@ -673,6 +716,34 @@ class Multiplayer: UIViewController, MCBrowserViewControllerDelegate, MCSessionD
                 print("Player Score not recorded")
             }
 
+            let ReceivedMessage = NSKeyedUnarchiver.unarchiveObject(with: data) as? String
+            
+            if ReceivedMessage == self.msg1
+            {
+                self.revealAnswer()
+            }
+            
+            if ReceivedMessage == self.msg2
+            {
+                self.startover.isHidden = true
+                self.quiz.number += 1
+                
+                for i in 0 ..< self.maxPlayers {
+                    self.scores[i] = 0
+                }
+                
+                DispatchQueue.main.async(){
+                    self.searchQuizData(quizNumber: self.quiz.number)
+                }
+
+            }
+            
+            if ReceivedMessage == self.msg3
+            {
+                _ = self.navigationController?.popViewController(animated: true)
+            }
+
+          
             
             
         })
