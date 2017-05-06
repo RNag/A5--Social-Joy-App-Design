@@ -7,14 +7,12 @@
 //
 
 import UIKit
+import CoreMotion
 import MultipeerConnectivity
 
 class Multiplayer: UIViewController, MCSessionDelegate {
     
     var session: MCSession!
-    
-    //var peerID: MCPeerID!
-    
     
     @IBOutlet var options: [UIButton]!
     @IBOutlet var playerIcons: [UIImageView]!
@@ -28,7 +26,8 @@ class Multiplayer: UIViewController, MCSessionDelegate {
     @IBOutlet weak var statusUpdateLabel: UILabel!
     @IBOutlet weak var startOverButton: UIButton!
     
-    
+    //  Core Motion Manager
+    var motionManager: CMMotionManager!
     
     let playerAssets : [UIImage] = [ #imageLiteral(resourceName: "User Filled-Blue2"), #imageLiteral(resourceName: "User Filled-Violet"), #imageLiteral(resourceName: "User Filled-Green"), #imageLiteral(resourceName: "User Filled-Orange")  ]
     
@@ -50,12 +49,19 @@ class Multiplayer: UIViewController, MCSessionDelegate {
     var numberOfPlayers = 0
     
     var numberOfLockedInAnswers = 0
+    var hasLocalPeerSubmitted = false
+    
     var readyUpCount = 0
     
     let choices = ["A", "B", "C", "D"]
     
     var players:[(peerId: MCPeerID, nickname: String)] = []
 
+    var selectionIndex = -1
+    
+    var initialAttitude : CMAttitude!
+    var shakeCooldown = false
+    
     
     var quiz = quizProperties()
     
@@ -75,18 +81,44 @@ class Multiplayer: UIViewController, MCSessionDelegate {
     }
     
     override func viewWillDisappear(_ animated: Bool) {
-        session.disconnect()
-        timer.invalidate()
+        
+        //  End Core Motion data gathering
+        UIDevice.current.endGeneratingDeviceOrientationNotifications()
+        
+        let msg : [String : Any] = ["dismissPeer" : hasLocalPeerSubmitted]
+        let dataToSend =  NSKeyedArchiver.archivedData(withRootObject: msg)
+        let myPeers = players.dropFirst().map({$0.peerId})
+        
+        do {
+            try session.send(dataToSend, toPeers: myPeers, with: .unreliable)
+        }
+                
+        catch let err {
+            print("There was a data transmission error in: SENDING /nError code: \(err)")
+        }
+        
+        //session.disconnect()
+        if timer != nil {   timer.invalidate()  }
         print("You quit the session.")
+    }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        super .viewDidDisappear(animated)
+        
+        self.motionManager.stopDeviceMotionUpdates()
+        session.disconnect()
     }
     
     func initialize() {
         
         timeInSeconds = 0
-
+        selectionIndex = -1
         numberOfPlayers = players.count
         numberOfLockedInAnswers = 0
+        hasLocalPeerSubmitted = false
         readyUpCount += 1
+        
+        
         
         print("INIT (RC: \(readyUpCount))")
 
@@ -161,11 +193,18 @@ class Multiplayer: UIViewController, MCSessionDelegate {
         
         //  Load JSON data before view is shown
         searchQuizData(quizNumber: quiz.number)
+        
+        // Prepare to record CoreMotion data
+        self.motionManager.deviceMotionUpdateInterval = 1.0/60.0
+        self.motionManager.startDeviceMotionUpdates(using: .xArbitraryCorrectedZVertical)
+        
+        Timer.scheduledTimer(timeInterval: 0.02, target: self, selector: #selector(updateDeviceMotion), userInfo: nil, repeats: true)
     }
 
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         // Do any additional setup after loading the view, typically from a nib.
         
         for option in options {
@@ -174,12 +213,19 @@ class Multiplayer: UIViewController, MCSessionDelegate {
             option.titleLabel?.numberOfLines = 0
             option.titleLabel?.lineBreakMode = .byWordWrapping
         }
+        // Setup the core motion manager upon view load
+        self.motionManager = CMMotionManager()
+        
+        if let data = self.motionManager.deviceMotion {
+            initialAttitude = data.attitude  // initial attitude
+        }
     }
     
     @IBAction func selectOption(_ sender: UIButton){
         
         if let i = options.index(of: sender) {
             tappedCount[i] += 1
+            selectionIndex = i
             
             options.forEach({$0.isSelected = false})
             
@@ -225,7 +271,7 @@ class Multiplayer: UIViewController, MCSessionDelegate {
         //  On successful submission, share the result with all players. In case of TIME IS UP: force a user submission, since user did not make a choice
         
         numberOfLockedInAnswers += 1
-
+        hasLocalPeerSubmitted = true
         
         var msg : [String : Any] = [:]
         msg["peerChoice"] = defaultLetter
@@ -260,6 +306,8 @@ class Multiplayer: UIViewController, MCSessionDelegate {
         options[selectIndex].backgroundColor = submitColor
         
         numberOfLockedInAnswers += 1
+        hasLocalPeerSubmitted = true
+        selectionIndex = -1
         
         let playersUndecided = numberOfPlayers - numberOfLockedInAnswers
         
@@ -298,7 +346,6 @@ class Multiplayer: UIViewController, MCSessionDelegate {
             cDownLabel.text = "Nice Job!"
 
             scores[0] += 1
-            playerScores[0].text = "\(scores[0])"
             
         }
         else {
@@ -329,23 +376,34 @@ class Multiplayer: UIViewController, MCSessionDelegate {
         UIApplication.shared.isNetworkActivityIndicatorVisible = false
         statusUpdateLabel.isHidden = true
         
+        //  Update player scores only when all choices have been recorded
+        for i in 0 ..< playerScores.count {
+            playerScores[i].text = "\(scores[i])"
+        }
+        
+        for player in players {
+            if player.nickname == "Disconnected" {
+                //  additional clean-up here
+                players.removeAll()
+                assignPeerIDs()
+                numberOfPlayers = self.players.count
+            }
+        }
+        
+        
         quiz.qIndex += 1
         readyUpCount = 0
         
+        hasLocalPeerSubmitted = false   // This is only needed so it does not conflict with actions to take when a peer leaves session
+        
         _ = Timer.scheduledTimer(timeInterval: 3, target: self, selector: #selector(loadNextQuestion), userInfo: nil, repeats: false)
-        
-        
-        //let when = DispatchTime.now() + 3
-        //DispatchQueue.main.asyncAfter(deadline: when) {
-            // Your code with delay
-            
-
-        //}
         
     }
     
     
     func quizTimer() {
+        
+        shakeCooldown = shakeCooldown ? false : shakeCooldown
         
         timeInSeconds += 1
         cDownLabel.text = String(COUNTDOWN_TIME - timeInSeconds)
@@ -514,13 +572,56 @@ class Multiplayer: UIViewController, MCSessionDelegate {
                 print("New Broadcast from \(playerTag): Readied \(cast[0])/\(cast[1]) needed")
             }
             
+            
+            //  DISMISS PEER    -   Player has prematurely left the game
+            if  let dPC = receivedDict["dismissPeer"] {
+                if (dPC as! Bool) {
+                    self.numberOfLockedInAnswers -= 1
+                }
+                
+                print("Received dismiss")
+                
+                let p = self.players.index(where: {$0.peerId == sender})!
+                
+                // Temporarily add empty placeholder for leaving player (TB finalized on round end)
+                self.players[p].nickname = "Disconnected"
+                
+                self.playerIcons[p].image = #imageLiteral(resourceName: "User-Unfilled")
+                self.playerIcons[p].alpha = 0.02
+                self.playerScores[p].isEnabled = false
+                self.playerScores[p].alpha = 0.5
+                self.playerSpeechBubble[p].isHidden = true
+                self.playerVisualChoice[p].isHidden = true
+                self.playerScores[p].text = "Left"
+                
+                self.scores.remove(at: p)
+                self.scores.append(0)
+
+                let playersUndecided = self.numberOfPlayers - self.numberOfLockedInAnswers
+                self.statusUpdateLabel.text = "Waiting on \(playersUndecided) more players ..."
+                
+                if self.numberOfPlayers < 2 {
+                    print("Less than 2 players.")
+                    session.disconnect()
+                    
+                    self.navigationController!.popToRootViewController(animated: true)
+                }
+                
+                if  (self.numberOfLockedInAnswers >= self.numberOfPlayers) {
+                    print("Going to Next (received from last needed)")
+                    self.goNext()
+                }
+            }
+    
+            
+            
+            
             if  let choice = receivedDict["peerChoice"],
                 let isCorrect = receivedDict["isCorrect"]
             {
-               
+
                 self.playerVisualChoice[senderIndex].text = choice as? String
                 self.scores[senderIndex] += isCorrect as! Bool ? 1 : 0
-                self.playerScores[senderIndex].text = String(self.scores[senderIndex])
                 self.numberOfLockedInAnswers += 1
 
                 print("Received player choice (\(choice)) - Submitted \(self.numberOfLockedInAnswers) ")
@@ -556,7 +657,9 @@ class Multiplayer: UIViewController, MCSessionDelegate {
                 }
             }
         })
+        
     }
+    
     
     func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, with progress: Progress) {
         
@@ -565,6 +668,7 @@ class Multiplayer: UIViewController, MCSessionDelegate {
     func session(_ session: MCSession, didReceive stream: InputStream, withName streamName: String, fromPeer peerID: MCPeerID) {
         
     }
+    
     
     
     func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
@@ -576,16 +680,11 @@ class Multiplayer: UIViewController, MCSessionDelegate {
             print("Connecting: \(peerID.displayName)")
             
         case MCSessionState.notConnected:
-            let exitingPlayer = players.first(where: {$0.peerId == peerID})!
-            
-            print("Not Connected: \(exitingPlayer.nickname)")
-            //  Remove player from current list of players
-            
-            
-            numberOfPlayers -= 1
-            players.remove(at: players.index(where: {$0.peerId == peerID})!)
+            print("Player disconnected.")
+//            print("Not Connected: \(exitingPlayer.nickname)")
             
         }
+        
     }
     
     //**********************************************************
@@ -687,5 +786,105 @@ class Multiplayer: UIViewController, MCSessionDelegate {
         
     }
     
-}
+    
+    /** CORE    MOTION */
+    
 
+    override func motionBegan(_ motion: UIEventSubtype, with event: UIEvent?) {
+        if motion == .motionShake {
+            makeRandomChoice()
+        }
+    }
+    
+    func switchSelection(_ directionLR: Bool){
+        
+        var nextSelection = -1
+        
+        if !hasLocalPeerSubmitted {
+            switch(selectionIndex){
+            case 0:
+                nextSelection = directionLR ? 1 : 2
+            case 1:
+                nextSelection = directionLR ? 0 : 3
+            case 2:
+                nextSelection = directionLR ? 3 : 0
+            case 3:
+                nextSelection = directionLR ? 2 : 1
+            default:
+                break
+            }
+            if nextSelection > -1 {
+                selectOption(options[nextSelection])
+            }
+            
+        }
+        
+    }
+    
+    
+    func makeRandomChoice() {
+        
+        var possibleChoices = [0, 1, 2, 3]
+        
+        if !hasLocalPeerSubmitted {
+            
+            if selectionIndex != -1 { possibleChoices.remove(at: selectionIndex) }
+            let rand = Int(arc4random_uniform(UInt32(possibleChoices.count)))
+            selectOption(options[possibleChoices[rand]])
+        }
+    }
+    
+    override func motionEnded(_ motion: UIEventSubtype, with event: UIEvent?) {
+        //print("motionEnded")
+    }
+    
+    
+    func updateDeviceMotion(){
+        
+        if let data = self.motionManager.deviceMotion {
+            
+            // orientation of body relative to a reference frame
+            let attitude = data.attitude
+            let userAcceleration = data.userAcceleration
+            let rotation = data.rotationRate
+            
+            if shakeCooldown {
+                return
+            }
+            
+            // Force user submission (upon yaw or negative-z acceleration)
+            if selectionIndex != -1 && !hasLocalPeerSubmitted {
+                if fabs(CGFloat(attitude.yaw - initialAttitude.yaw)) > 1.50 {
+                    shakeCooldown = true
+                    shouldSubmit(selectionIndex)
+                }
+                
+                if CGFloat(userAcceleration.z) < -3.00 {
+                    shakeCooldown = true
+                    shouldSubmit(selectionIndex)
+                }
+            }
+            
+            
+            if fabs(CGFloat(attitude.pitch - initialAttitude.pitch)) > 1.50 { // pitch is equivalent to tilting device UP/DOWN
+                shakeCooldown = true
+                switchSelection(false)
+            }
+            
+            if fabs(CGFloat(attitude.roll - initialAttitude.roll)) > 1.50 { // roll is equivalent to tilting device LEFT/RIGHT
+                shakeCooldown = true
+                switchSelection(true)
+            }
+            
+        }
+        
+    }
+    
+    
+    func record(){
+        if CMSensorRecorder.isAccelerometerRecordingAvailable() {
+            let recorder = CMSensorRecorder()
+            recorder.recordAccelerometer(forDuration: 20 * 60)  // Record for 20 minutes
+        }
+    }
+}

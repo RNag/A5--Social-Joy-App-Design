@@ -7,7 +7,7 @@
 //
 
 import UIKit
-
+import CoreMotion
 
 struct QuizQuestion {
     
@@ -72,6 +72,9 @@ class Singleplayer: UIViewController {
     @IBOutlet weak var cDownLabel : UILabel!
     @IBOutlet weak var startOverButton: UIButton!
     
+    //  Core Motion Manager
+    var motionManager: CMMotionManager!
+    
     let playerAssets : [UIImage] = [ #imageLiteral(resourceName: "User Filled-Blue2"), #imageLiteral(resourceName: "User Filled-Violet"), #imageLiteral(resourceName: "User Filled-Green"), #imageLiteral(resourceName: "User Filled-Orange")  ]
     
     let defaultColor = #colorLiteral(red: 0.7233663201, green: 0.7233663201, blue: 0.7233663201, alpha: 1)
@@ -81,22 +84,33 @@ class Singleplayer: UIViewController {
     let COUNTDOWN_TIME = 20
     let transitionTime = 3
     let maxPlayers = 4
+    static let numberOfChoices = 4
     
     var timer : Timer!
     var timeInSeconds : Int = 0
     var scores = Array(repeating: 0, count: 4)
-    var tappedCount = Array(repeating: 0, count: 4)
+    var tappedCount = Array(repeating: 0, count: numberOfChoices)
     var numberOfPlayers = 1
-
+    
+    
+    var hasLocalPeerSubmitted = false
+    var selectionIndex = -1
+    
     var quiz = quizProperties()
 
     
+    var initialAttitude : CMAttitude!
+    var shakeCooldown = false
+    
+
     func initialize() {
 
         timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(quizTimer), userInfo: nil, repeats: true)
         
         timeInSeconds = 0
-
+        hasLocalPeerSubmitted = false
+        selectionIndex = -1
+        
         for i in 0 ..< tappedCount.count {
             tappedCount[i] = 0
         }
@@ -145,34 +159,156 @@ class Singleplayer: UIViewController {
         
         //  Load JSON data before view is shown
         searchQuizData(quizNumber: quiz.number)
+        
+        
+        // Prepare to record CoreMotion data
+        self.motionManager.deviceMotionUpdateInterval = 1.0/60.0
+        self.motionManager.startDeviceMotionUpdates(using: .xArbitraryCorrectedZVertical)
+        
+        Timer.scheduledTimer(timeInterval: 0.02, target: self, selector: #selector(updateDeviceMotion), userInfo: nil, repeats: true)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+
+        //  End Core Motion data gathering
+        UIDevice.current.endGeneratingDeviceOrientationNotifications()
+    }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        self.motionManager.stopDeviceMotionUpdates()
+    }
+    
+    override func motionBegan(_ motion: UIEventSubtype, with event: UIEvent?) {
+        if motion == .motionShake {
+            makeRandomChoice()
+        }
+    }
+    
+    func switchSelection(_ directionLR: Bool){
+        
+        var nextSelection = -1
+        
+        if !hasLocalPeerSubmitted {
+            switch(selectionIndex){
+                case 0:
+                    nextSelection = directionLR ? 1 : 2
+                case 1:
+                    nextSelection = directionLR ? 0 : 3
+                case 2:
+                    nextSelection = directionLR ? 3 : 0
+                case 3:
+                    nextSelection = directionLR ? 2 : 1
+                default:
+                    break
+            }
+            if nextSelection > -1 {
+                selectOption(options[nextSelection])
+            }
+                
+        }
+            
+    }
+        
+        
+    func makeRandomChoice() {
+        
+        var possibleChoices = [0, 1, 2, 3]
+        
+        if !hasLocalPeerSubmitted {
+            
+            if selectionIndex != -1 { possibleChoices.remove(at: selectionIndex) }
+            let rand = Int(arc4random_uniform(UInt32(possibleChoices.count)))
+            selectOption(options[possibleChoices[rand]])
+        }
+    }
+    
+    override func motionEnded(_ motion: UIEventSubtype, with event: UIEvent?) {
+        //print("motionEnded")
     }
     
     
+    func updateDeviceMotion(){
+
+        if let data = self.motionManager.deviceMotion {
+            
+            // orientation of body relative to a reference frame
+            let attitude = data.attitude
+            let userAcceleration = data.userAcceleration
+            let rotation = data.rotationRate
+            
+            if shakeCooldown {
+                return
+            }
+            
+            // Force user submission (upon yaw or negative-z acceleration)
+            if selectionIndex != -1 && !hasLocalPeerSubmitted {
+                if fabs(CGFloat(attitude.yaw - initialAttitude.yaw)) > 1.50 {
+                    shakeCooldown = true
+                    shouldSubmit(selectionIndex)
+                }
+            
+                if CGFloat(userAcceleration.z) < -3.00 {
+                    shakeCooldown = true
+                    shouldSubmit(selectionIndex)
+                }
+            }
+            
+            
+            if fabs(CGFloat(attitude.pitch - initialAttitude.pitch)) > 1.50 { // pitch is equivalent to tilting device UP/DOWN
+                shakeCooldown = true
+                switchSelection(false)
+            }
+            
+            if fabs(CGFloat(attitude.roll - initialAttitude.roll)) > 1.50 { // roll is equivalent to tilting device LEFT/RIGHT
+                shakeCooldown = true
+                switchSelection(true)
+            }
+            
+        }
+        
+    }
+    
+    
+    func record(){
+        if CMSensorRecorder.isAccelerometerRecordingAvailable() {
+            let recorder = CMSensorRecorder()
+            recorder.recordAccelerometer(forDuration: 20 * 60)  // Record for 20 minutes
+        }
+        
+    }
+    
     override func viewDidLoad() {
          super.viewDidLoad()
+        
         // Do any additional setup after loading the view.
         
         for option in options {
             option.layer.cornerRadius = 15
             option.layer.masksToBounds =  true
         }
+        // Setup the core motion manager upon view load
+        self.motionManager = CMMotionManager()
         
+        if let data = self.motionManager.deviceMotion {
+            initialAttitude = data.attitude  // initial attitude
+        }
         
-
-    
     }
     
     @IBAction func selectOption(_ sender: UIButton){
 
         if let i = options.index(of: sender) {
             tappedCount[i] += 1
+            selectionIndex = i
             
             options.forEach({$0.isSelected = false})
             
             switch tappedCount[i] {
             case 1:
                 options[i].backgroundColor = selectColor
-                
+
                 for c in 0 ..< tappedCount.count {
                     if c != i {
                         tappedCount[c] = 0
@@ -197,7 +333,7 @@ class Singleplayer: UIViewController {
         playerVisualChoice[0].text = String(letter)
         playerVisualChoice[0].textColor = UIColor.red
         */
-        
+        hasLocalPeerSubmitted = true
         playerVisualChoice[0].text = ""
         cDownLabel.text = "Time's up!"
         revealAnswer()
@@ -207,14 +343,12 @@ class Singleplayer: UIViewController {
     func shouldSubmit(_ selectIndex : Int) {
         
         let letter = options[selectIndex].currentTitle!.characters.first!
-        
+        selectionIndex = -1
         timer.invalidate()
         
         options[selectIndex].backgroundColor = submitColor
         
-        
-        // NOTE: this will only set player 1's speech overhead.
-        // Need to loop through all players inside this func
+        hasLocalPeerSubmitted = true
         playerVisualChoice[0].text = String(letter)
 
         for option in options {
@@ -282,6 +416,9 @@ class Singleplayer: UIViewController {
     
     
     func quizTimer() {
+        
+        shakeCooldown = shakeCooldown ? false : shakeCooldown
+        
         
         timeInSeconds += 1
         cDownLabel.text = String(COUNTDOWN_TIME - timeInSeconds)
@@ -409,5 +546,8 @@ class Singleplayer: UIViewController {
         quiz.topic = quizTopic
         
     }
+    
+    
+    
 
 }
