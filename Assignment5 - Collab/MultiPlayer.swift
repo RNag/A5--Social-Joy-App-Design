@@ -376,11 +376,6 @@ class Multiplayer: UIViewController, MCSessionDelegate {
         UIApplication.shared.isNetworkActivityIndicatorVisible = false
         statusUpdateLabel.isHidden = true
         
-        //  Update player scores only when all choices have been recorded
-        for i in 0 ..< playerScores.count {
-            playerScores[i].text = "\(scores[i])"
-        }
-        
         for player in players {
             if player.nickname == "Disconnected" {
                 //  additional clean-up here
@@ -389,7 +384,11 @@ class Multiplayer: UIViewController, MCSessionDelegate {
                 numberOfPlayers = self.players.count
             }
         }
-        
+     
+        //  Update player scores only when all choices have been recorded
+        for i in 0 ..< playerScores.count {
+            playerScores[i].text = "\(scores[i])"
+        }
         
         quiz.qIndex += 1
         readyUpCount = 0
@@ -597,6 +596,8 @@ class Multiplayer: UIViewController, MCSessionDelegate {
                 self.scores.remove(at: p)
                 self.scores.append(0)
 
+                self.numberOfPlayers -= 1    // tentatively reduce player count by 1 (player data is not fully acknowledged till round end)
+                
                 let playersUndecided = self.numberOfPlayers - self.numberOfLockedInAnswers
                 self.statusUpdateLabel.text = "Waiting on \(playersUndecided) more players ..."
                 
